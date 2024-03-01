@@ -42,24 +42,19 @@ RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download
 
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
-# Configure cronitor if enabled and API key is provided
-ARG CRONITOR_ENABLE=false
-ARG CRONITOR_API_KEY=""
-RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
-    echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
-    cronitor discover --auto; \
-fi
-
 # Switch back to the non-root user
 USER 1000
 
 # Apply cron job
 RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
 
-#Configure cronitor
+# Configure cronitor if enabled and API key is provided
 ARG CRONITOR_ENABLE=false
-RUN if [ "$CRONITOR_ENABLE" = "true" ]; then \
-    cronitor discover; \
+ARG CRONITOR_API_KEY=""
+
+RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
+    echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
+    cronitor discover --auto; \
 fi
 
 # Expose VNC port
