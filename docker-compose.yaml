@@ -1,0 +1,18 @@
+version: "2.1"
+services:
+  iptvboss-vnc:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iptvboss-vnc
+    networks:
+    - portainer_network
+    ports:
+      - 5901:5901
+      - 6901:6901
+    volumes:
+      - /nfs/container/iptvboss/IPTVBoss:/headless/IPTVBoss
+networks:
+  portainer_network:
+    external: true
