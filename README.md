@@ -59,7 +59,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iptvboss-vnc
+    container_name: iptvboss
     environment:
       CRONITOR_ENABLE: "true"
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
