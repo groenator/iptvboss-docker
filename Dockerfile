@@ -47,7 +47,7 @@ ARG CRONITOR_ENABLE=false
 ARG CRONITOR_API_KEY=""
 RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
     echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
-    cronitor discover; \
+    cronitor discover --auto; \
 fi
 
 # Switch back to the non-root user
