@@ -9,7 +9,7 @@ ENV LC_ALL=C.UTF-8
 USER 0
 
 # Install necessary dependencies
-RUN yum install -y wget cronie \
+RUN yum install -y wget cronie vlc \
     && yum update -y \
     && yum clean all
 
