@@ -42,6 +42,10 @@ RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download
 
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
+# Entrypoint script to configure Cronitor and start VNC
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Switch back to the non-root user
 USER 1000
 
@@ -61,7 +65,4 @@ ARG CRONITOR_API_KEY=""
 EXPOSE 5901
 EXPOSE 6901
 
-# Entrypoint script to configure Cronitor and start VNC
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
