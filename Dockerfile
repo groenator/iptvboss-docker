@@ -47,3 +47,12 @@ ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
 # Apply cron job
 RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
+
+#Configure cronitor
+ARG CRONITOR_ENABLE=false
+ENV CRONITOR_KEY=$CRONITOR_KEY
+
+RUN if [ "$CRONITOR_ENABLE" = "true" ]; then \
+    curl https://cronitor.io/install-linux?sudo=1 -H "API-KEY: $CRONITOR_KEY"  | sh && \
+    cronitor discover; \
+fi
