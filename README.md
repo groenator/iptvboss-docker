@@ -55,7 +55,7 @@ You can also use Docker Compose to manage the Docker container. An example docke
 ```yaml
 version: "2.1"
 services:
-  iptvboss-vnc:
+  iptvboss:
     build:
       context: .
       dockerfile: Dockerfile
