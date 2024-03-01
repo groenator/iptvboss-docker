@@ -16,13 +16,8 @@ RUN yum install -y wget cronie vlc \
 # Create a new user with home directory set to /headless
 RUN useradd -m -d /headless -s /bin/bash iptvboss
 
-#Configure cronitor
-ARG CRONITOR_ENABLE=false
-ENV CRONITOR_KEY=$CRONITOR_KEY
-
-RUN if [ "$CRONITOR_ENABLE" = "true" ]; then \
-    curl https://cronitor.io/install-linux?sudo=1 -H "API-KEY: $CRONITOR_KEY"  | sh; \
-    fi
+# Install Cronitor by default
+RUN curl https://cronitor.io/install-linux?sudo=1 | sh
 
 # Set the working directory
 WORKDIR /headless
@@ -45,17 +40,28 @@ RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download
     mv iptvboss-3.4.160.0 /usr/lib/iptvboss && \
     rm -f iptvboss-3.4.160.0-linux-amd64.tar.gz
 
-# Expose VNC port
-EXPOSE 5901
-EXPOSE 6901
+ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
+
+# Configure cronitor if enabled and API key is provided
+ARG CRONITOR_ENABLE=false
+ARG CRONITOR_API_KEY=""
+RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
+    echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
+    cronitor discover; \
+fi
 
 # Switch back to the non-root user
 USER 1000
-ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
 # Apply cron job
 RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
 
+#Configure cronitor
+ARG CRONITOR_ENABLE=false
 RUN if [ "$CRONITOR_ENABLE" = "true" ]; then \
     cronitor discover; \
 fi
+
+# Expose VNC port
+EXPOSE 5901
+EXPOSE 6901
