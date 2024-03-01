@@ -48,10 +48,6 @@ docker build -t iptvboss-vnc --build-arg CRONITOR_ENABLE=true --build-arg CRONIT
 
 Alternatively, edit the `docker-compose.yml` file.
 
-## VNC Connection
-
-Connect to the VNC server using your preferred VNC client. The default password is vncpassword.
-
 ## Docker Compose
 
 You can also use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
@@ -80,7 +76,9 @@ Adjust the configuration as needed and run:
 docker-compose up -d
 ```
 
-## Access the VNC Server
+## VNC Connection
+
+Connect to the VNC server using your preferred VNC client. The default password is `vncpassword`.
 
 ```text
 http://localhost:6901/password=vncpassword
