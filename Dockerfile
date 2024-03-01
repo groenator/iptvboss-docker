@@ -52,11 +52,16 @@ RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
 ARG CRONITOR_ENABLE=false
 ARG CRONITOR_API_KEY=""
 
-RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
-    echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
-    cronitor discover --auto; \
-fi
+# RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
+#     echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
+#     cronitor discover --auto; \
+# fi
 
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901
+
+# Entrypoint script to configure Cronitor and start VNC
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
