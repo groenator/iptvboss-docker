@@ -42,27 +42,17 @@ RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download
 
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
-# Entrypoint script to configure Cronitor and start VNC
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Switch back to the non-root user
 USER 1000
 
 # Apply cron job
 RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
 
-# Configure cronitor if enabled and API key is provided
-ARG CRONITOR_ENABLE=false
-ARG CRONITOR_API_KEY=""
-
-# RUN if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then \
-#     echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json && \
-#     cronitor discover --auto; \
-# fi
-
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Execute the shell script
+COPY entrypoint.sh /headless/entrypoint.sh
+
+ENTRYPOINT ["/headless/entrypoint.sh"]

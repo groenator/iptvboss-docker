@@ -1,15 +1,10 @@
 #!/bin/bash
 
-# Function to configure and discover Cronitor
-configure_cronitor() {
-    if [ "$CRONITOR_ENABLE" = "true" ] && [ -n "$CRONITOR_API_KEY" ]; then
-        echo "{ \"CRONITOR_API_KEY\": \"$CRONITOR_API_KEY\" }" > /etc/cronitor/cronitor.json
-        cronitor discover --auto
-    fi
-}
+if [ -n "$CRONITOR_API_KEY" ]; then
+    cronitor discover --auto --api-key "$CRONITOR_API_KEY" &
+else
+    echo "CRONITOR_API_KEY not set. Please make sure it is defined."
+fi
 
-# Run the Cronitor configuration and discovery function
-configure_cronitor
-
-# Start the VNC server or any other startup commands
-exec "$@"
+/dockerstartup/vnc_startup.sh --wait
+```

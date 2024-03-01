@@ -1,11 +1,14 @@
 version: "2.1"
 services:
-  iptvboss-vnc:
+  iptvboss:
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iptvboss-vnc
+    container_name: iptvboss
+    environment:
+    - CRONITOR_ENABLE=true
+    - CRONITOR_API_KEY=7151dcaa743f43e3b5f3c64fb4649dd9
     networks:
     - portainer_network
     ports:
