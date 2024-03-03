@@ -43,7 +43,7 @@ Prerequisites:
 To enable Cronitor monitoring, set the build arguments while building the image:
 
 ```bash
-docker build -t iptvboss-vnc --build-arg CRONITOR_ENABLE=true --build-arg CRONITOR_API_KEY=your_api_key .
+docker build -t iptvboss-vnc --build-arg CRONITOR_API_KEY=your_api_key .
 ```
 
 Alternatively, edit the `docker-compose.yml` file.
