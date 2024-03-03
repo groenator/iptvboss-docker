@@ -1,6 +1,6 @@
 
 # Use the official CentOS base image
-FROM consol/rocky-xfce-vnc
+FROM consol/debian-xfce-vnc
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
@@ -8,28 +8,31 @@ ENV LC_ALL=C.UTF-8
 # Switch to root temporarily to perform system updates
 USER 0
 
-# Install necessary dependencies
-RUN yum install -y wget cronie vlc \
-    && yum update -y \
-    && yum clean all
+# Set the working directory
+WORKDIR /headless
 
-# Create a new user with home directory set to /headless
-RUN useradd -m -d /headless -s /bin/bash iptvboss
+# Update package list and upgrade installed packages
+RUN apt-get update && apt-get upgrade -y
+
+# Install necessary dependencies
+RUN apt-get install --no-install-recommends wget cron curl sudo vlc -y &&  \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Cronitor by default
 RUN curl https://cronitor.io/install-linux?sudo=1 | sh
 
-# Set the working directory
-WORKDIR /headless
+# Create a new user with home directory set to /he  adless
+RUN useradd -m -d /headless -s /bin/bash iptvboss
 
 # Copy the cron file to the cron.d directory
-COPY iptvboss-cron /var/spool/crontab/iptvboss/iptvboss-cron
+COPY iptvboss-cron /etc/cron.d/iptvboss-cron
 
 # Give execution rights on the cron job
-RUN chmod 0644 /var/spool/crontab/iptvboss/iptvboss-cron
-
-# Create the log file to be able to run tail
-RUN touch /var/log/cron.log
+RUN crontab -u iptvboss /etc/cron.d/iptvboss-cron &&  \
+    chmod u+s /usr/sbin/cron && \
+    touch /var/log/cron.log && \
+    chown iptvboss:iptvboss /var/log/cron.log
 
 # Download and extract iptvboss tar
 RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download/iptvboss-3.4.160.0-linux-amd64.tar.gz" && \
@@ -44,9 +47,6 @@ ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
 # Switch back to the non-root user
 USER 1000
-
-# Apply cron job
-RUN crontab /var/spool/crontab/iptvboss/iptvboss-cron
 
 # Expose VNC port
 EXPOSE 5901

@@ -1,1 +1,2 @@
-0 04-17/12 * * * /usr/lib/iptvboss/bin/iptvboss -nogui
+0 04-17/12 * * * /usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log 2>&1
+0 * * * * echo "Hello World" >> /var/log/cron.log 2>&1
