@@ -12,3 +12,8 @@ iptvboss/*
 
 # Built Visual Studio Code Extensions
 *.vsix
+subprocess
+os
+cronitor
+cronitor.pyc
+__pycache__/cronitor.cpython-311.pyc
