@@ -12,7 +12,7 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can 
 
 ## Features
 
-- Ubuntu-based VNC server.
+- Debian-based VNC server.
 - IPTVBoss application pre-installed.
 - Automatically configuring the cron job for updating the tasks.
 - Cronitor.io integration for monitoring the cron job(optional)
