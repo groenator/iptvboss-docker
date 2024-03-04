@@ -86,3 +86,11 @@ To enable Cronitor monitoring, set the build argument while building the image:
 ```bash
 docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
+
+## Task to improve
+
+- Pushing the docker image to an actual docker registry.
+- Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
+  - At the moment, anytime the container is restarted it will re-create the cronitor jobs again.
+  - If that's the case, delete the old jobs and use the new ones.
+  - Run `crontab -l` inside the docker container to see the cronitor job ID and compare it with the cronitor.io dashboard.
