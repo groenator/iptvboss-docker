@@ -36,7 +36,7 @@ services:
       dockerfile: Dockerfile
     container_name: iptvboss
     environment:
-      CRONITOR_API_KEY: "<your_cronitor_api_key>"
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
       - 5901:5901
       - 6901:6901
