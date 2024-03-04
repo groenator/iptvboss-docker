@@ -2,9 +2,11 @@
 
 This Docker image provides a VNC server with the IPTVBoss application. It includes the option to configure Cronitor for monitoring.
 
+IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
+
 ## Prerequisites
 
-- Docker installed on your server. See [Docker documentation](https://docs.docker.com/get-docker/) for installation instructions.
+- Docker installed on your machine. See [Docker documentation](https://docs.docker.com/get-docker/) for installation instructions.
 - Docker-compose. See [Docker Compose documentation](https://docs.docker.com/compose/install/) for installation instructions.
 - A Linux or Mac computer to build the Docker image. I don't use Windows, for Windows I recommend using WSL2.
 
@@ -15,29 +17,62 @@ This Docker image provides a VNC server with the IPTVBoss application. It includ
 - Automatically configuring the cron job for updating the tasks.
 - Cronitor.io integration for monitoring the cron job(optional)
 
-## Usage
+## Building the Docker Image
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss-vnc iptvboss-vnc
+docker build -t iptvboss .
 ```
 
-### Building the Docker Image
+## Docker Compose (preferred way)
+
+Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
+
+```yaml
+version: "2.1"
+services:
+  iptvboss:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iptvboss
+    environment:
+      CRONITOR_API_KEY: "<your_cronitor_api_key>"
+    ports:
+      - 5901:5901
+      - 6901:6901
+    volumes:
+      - <local_volume>:/headless/IPTVBoss # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss
+```
+
+Adjust the configuration as needed and run:
 
 ```bash
-docker build -t iptvboss-vnc .
+docker-compose up -d
 ```
 
-Adjust the ports and container name as needed.
+Alternatively, you can run the Docker container using the following command:
 
-## Configuration
+```bash
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss iptvboss
+```
 
-### IPTVBoss
+## Accessing the VNC Server
 
-IPTVBoss is pre-installed via deb files in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
+Connect to the VNC server using your preferred VNC client or any browser by opening below URL.
+
+To connect to the VNC server using a VNC client, use the following address:
+
+`vnc://your-machine-ip:5901`
+
+To connect to the VNC server using a web browser, use the following address.
+
+`http://<your-machine-ip>:6901/password=vncpassword`. Alternatively, if you deploy it locally replace IP with `localhost`.
+
+The default password is `vncpassword`. Replace localhost with your actual server IP address.
 
 ## Cron Job
 
-A cron job is set up to perform periodic tasks. You can modify the cron schedule by editing the iptvboss-cron file.
+A cron job is set up to perform periodic EPG update tasks. You can modify the cron schedule by editing the iptvboss-cron file.
 
 ## Cronitor Integration (Optional)
 
@@ -49,43 +84,5 @@ Prerequisites:
 To enable Cronitor monitoring, set the build argument while building the image:
 
 ```bash
-docker build -t iptvboss-vnc --build-arg CRONITOR_API_KEY=your_api_key .
-```
-
-Alternatively, edit the `docker-compose.yml` file.
-
-## Docker Compose
-
-You can also use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
-
-```yaml
-version: "2.1"
-services:
-  iptvboss:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: iptvboss
-    environment:
-      CRONITOR_ENABLE: "true"
-      CRONITOR_API_KEY: "<your_cronitor_api_key>"
-    ports:
-      - 5901:5901
-      - 6901:6901
-    volumes:
-      - <local_volume>:/headless/IPTVBoss
-```
-
-Adjust the configuration as needed and run:
-
-```bash
-docker-compose up -d
-```
-
-## VNC Connection
-
-Connect to the VNC server using your preferred VNC client. The default password is `vncpassword`. Replace localhost with your actual server IP address.
-
-```text
-http://localhost:6901/password=vncpassword
+docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
