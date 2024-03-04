@@ -1,5 +1,5 @@
 
-# Use the official CentOS base image
+# Use the official Debian base image
 FROM consol/debian-xfce-vnc
 
 # Set locale to avoid warnings
