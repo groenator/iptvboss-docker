@@ -2,12 +2,18 @@
 
 This Docker image provides a VNC server with the IPTVBoss application. It includes the option to configure Cronitor for monitoring.
 
+## Prerequisites
+
+- Docker installed on your server. See [Docker documentation](https://docs.docker.com/get-docker/) for installation instructions.
+- Docker-compose. See [Docker Compose documentation](https://docs.docker.com/compose/install/) for installation instructions.
+- A Linux or Mac computer to build the Docker image. I don't use Windows, for Windows I recommend using WSL2.
+
 ## Features
 
-- CentOS-based VNC server.
+- Ubuntu-based VNC server.
 - IPTVBoss application pre-installed.
-- Cron job for periodic tasks.
-- Optional Cronitor integration for monitoring.
+- Automatically configuring the cron job for updating the tasks.
+- Cronitor.io integration for monitoring the cron job(optional)
 
 ## Usage
 
@@ -27,7 +33,7 @@ Adjust the ports and container name as needed.
 
 ### IPTVBoss
 
-IPTVBoss is pre-installed in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
+IPTVBoss is pre-installed via deb files in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 
 ## Cron Job
 
@@ -40,7 +46,7 @@ Prerequisites:
 - A Cronitor account. Sign up at [Cronitor.io](https://cronitor.io).
 - A Cronitor API key.
 
-To enable Cronitor monitoring, set the build arguments while building the image:
+To enable Cronitor monitoring, set the build argument while building the image:
 
 ```bash
 docker build -t iptvboss-vnc --build-arg CRONITOR_API_KEY=your_api_key .
@@ -78,7 +84,7 @@ docker-compose up -d
 
 ## VNC Connection
 
-Connect to the VNC server using your preferred VNC client. The default password is `vncpassword`.
+Connect to the VNC server using your preferred VNC client. The default password is `vncpassword`. Replace localhost with your actual server IP address.
 
 ```text
 http://localhost:6901/password=vncpassword
