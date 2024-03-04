@@ -15,9 +15,17 @@ WORKDIR /headless
 RUN apt-get update && apt-get upgrade -y
 
 # Install necessary dependencies
-RUN apt-get install --no-install-recommends wget cron curl sudo vlc -y &&  \
+RUN apt-get install --no-install-recommends wget cron curl sudo dpkg-dev rclone vlc -y jq libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Retrieve the latest release tag from GitHub
+RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
+    && LATEST_TAG=$(wget -qO- https://api.github.com/repos/walrusone/iptvboss-release/releases/latest | jq -r .tag_name) \
+    && wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb \
+    && apt install ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
+    cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
+    chmod 777 /headless/Desktop/iptvboss-release.desktop
 
 # Install Cronitor by default
 RUN curl https://cronitor.io/install-linux?sudo=1 | sh
@@ -33,15 +41,6 @@ RUN crontab -u iptvboss /etc/cron.d/iptvboss-cron &&  \
     chmod u+s /usr/sbin/cron && \
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
-
-# Download and extract iptvboss tar
-RUN wget "https://github.com/walrusone/iptvboss-release/releases/latest/download/iptvboss-3.4.160.0-linux-amd64.tar.gz" && \
-    tar -xzvf iptvboss-3.4.160.0-linux-amd64.tar.gz && \
-    cp iptvboss-3.4.160.0/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
-    sed -i 's/Icon=iptvboss/Icon=\/usr\/lib\/iptvboss\/share\/icons\/hicolor\/128x128\/apps\/iptvboss.png/' /headless/Desktop/iptvboss-release.desktop && \
-    chmod 777 /headless/Desktop/iptvboss-release.desktop && \
-    mv iptvboss-3.4.160.0 /usr/lib/iptvboss && \
-    rm -f iptvboss-3.4.160.0-linux-amd64.tar.gz
 
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
