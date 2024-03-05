@@ -1,64 +1,113 @@
 import os
 import subprocess
-import cronitor
 import requests
+import argparse
+import re
 
-# Set the global variable for CRONITOR_API_KEY
-CRONITOR_API_KEY = os.environ.get('CRONITOR_API_KEY')
+CRONITOR_API_KEY = os.getenv('CRONITOR_API_KEY')
+MONITOR_URL = 'https://cronitor.io/api/monitors'
 
-monitor_url = 'https://cronitor.io/api/monitors'
-
-# Step 1: Export Cronitor_API_KEY
-
-cronitor_api_key = os.getenv('CRONITOR_API_KEY')
-
-if not cronitor_api_key:
-    print("CRONITOR_API_KEY is not set. Please set it before running this script.")
-    exit(1)
+def get_cronitor_api_key():
+    if not CRONITOR_API_KEY:
+        print("CRONITOR_API_KEY is not set. Please set it before running this script.")
+        exit(1)
+    return CRONITOR_API_KEY
 
 def list_crontab_jobs():
-    # Run 'crontab -l' command to get the user's crontab
     crontab_output = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
-
-    if "no crontab for" in crontab_output.stderr:
-        print(crontab_output.stderr.strip()) # Print the actual crontab message
-    else:
-        # Split the output into lines to get the invidual cron jobs
-        crontab_lines = crontab_output.stdout.split('\n')
-
-        # Print each cron job
-        for job in crontab_lines:
-            print(job)
+    if crontab_output.returncode != 0:
+        print("Error listing crontab jobs.")
+        return []
+    return [line for line in crontab_output.stdout.splitlines() if line and not line.startswith('#')]
 
 def list_monitors(api_key):
     try:
-        # Make a GET request to list monitors
-        response = requests.get(monitor_url, auth=(api_key, ''))
+        response = requests.get(MONITOR_URL, auth=(api_key, ''))
+        response.raise_for_status()
+        monitors = response.json().get("monitors", [])
+        return monitors
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Unable to list monitors. {e}")
+        return []
 
-        # Check if the request was successful (HTTP status code 200)
-        if response.status_code == 200:
-            monitors = response.json()
-            if "monitors" in monitors:
-                if monitors["monitors"]:
-                    for monitor in monitors["monitors"]:
-                        print(f"Monitor Key: {monitor['key']} - Name: {monitor.get('name', 'N/A')}")
-                else:
-                    print("No monitors found.")
-            else:
-                print("Error: Invalid response from Cronitor API.")
+def create_monitor(api_key, cron_schedule, command, name):
+    try:
+        data = {
+            "type": "job",
+            "schedule": cron_schedule,
+            "name": name,
+            "command": command
+        }
+        response = requests.post(MONITOR_URL, auth=(api_key, ''), json=data)
+        response.raise_for_status()
+        monitor_id = response.json().get("key")
+        print(f"Created monitor with key: {monitor_id}")
+        return monitor_id
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Unable to create monitor. {e}")
+        if 'response' in locals() and response.status_code == 400:
+            print(f"Details: {response.json()}")
+        return None
 
-        else:
-            print(f"Error: Unable to list monitors. Status code: {response.status_code}")
+def update_crontab_with_monitor(job, monitor_id):
+    # Generate the new job line with the monitor ID
+    job_parts = job.split()
+    cron_schedule = ' '.join(job_parts[:5])
+    command = ' '.join(job_parts[5:])
+    new_job_line = f"{cron_schedule} cronitor exec {monitor_id} {command}"
 
-    except Exception as e:
-        print(f"Error: {e}")
+    # Get the current crontab, excluding the job we're updating
+    current_jobs = list_crontab_jobs()
+    current_jobs = [line for line in current_jobs if line != job]
+
+    # Add the new job line
+    current_jobs.append(new_job_line)
+
+    # Write the updated crontab
+    new_crontab = "\n".join(current_jobs) + "\n"
+    process = subprocess.run(['crontab', '-'], input=new_crontab, text=True, capture_output=True)
+    if process.returncode != 0:
+        print(f"Error updating crontab: {process.stderr}")
+    else:
+        print(f"Updated crontab with monitor ID: {monitor_id}")
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Create and update Cronitor monitors for cron jobs.')
+    parser.add_argument('--name', type=str, help='The name for the new monitor.')
+    return parser.parse_args()
+
+def get_monitor_id_from_job(job):
+    match = re.search(r'cronitor exec ([\w-]+)', job)
+    return match.group(1) if match else None
 
 if __name__ == "__main__":
-    # List all crontab jobs
-    list_crontab_jobs()
+    args = parse_arguments()
 
-    # List all cronitor monitors
-    if not cronitor_api_key:
-        print("Error: Cronitor API key is not set. Set the CRONITOR_API_KEY environment variable before running this script.")
-    else:
-        list_monitors(cronitor_api_key)
+    cronitor_api_key = get_cronitor_api_key()
+    local_crontab_jobs = list_crontab_jobs()
+    cronitor_monitors = list_monitors(cronitor_api_key)
+    existing_monitor_ids = {monitor.get('key') for monitor in cronitor_monitors}
+
+    for job in local_crontab_jobs:
+        monitor_id = get_monitor_id_from_job(job)
+        if monitor_id:
+            if monitor_id in existing_monitor_ids:
+                print(f"Monitor with ID {monitor_id} already exists for this job, skipping creation.")
+                continue
+            else:
+                print(f"Monitor ID {monitor_id} found in the job, but not in the dashboard, updating job.")
+
+        job_parts = job.split()
+        cron_schedule = ' '.join(job_parts[:5])
+        command_parts = job_parts[5:]
+        command = ' '.join(command_parts).replace(f"cronitor exec {monitor_id} ", "") if monitor_id else ' '.join(command_parts)
+
+        monitor_name = args.name
+        if not monitor_name:
+            print("Error: Please provide a name for the monitor using the --name argument.")
+            exit(1)
+
+        if monitor_id not in existing_monitor_ids:
+            monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
+            if monitor_id:
+                update_crontab_with_monitor(job, monitor_id)
