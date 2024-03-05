@@ -36,7 +36,8 @@ def create_monitor(api_key, cron_schedule, command, name):
             "type": "job",
             "schedule": cron_schedule,
             "name": name,
-            "command": command
+            "command": command,
+            "platform": "Linux cron"
         }
         response = requests.post(MONITOR_URL, auth=(api_key, ''), json=data)
         response.raise_for_status()
@@ -80,8 +81,16 @@ def get_monitor_id_from_job(job):
     match = re.search(r'cronitor exec ([\w-]+)', job)
     return match.group(1) if match else None
 
+def remove_cronitor_exec_from_job(job):
+    return re.sub(r'cronitor exec [\w-]+\s*', '', job)
+
 if __name__ == "__main__":
     args = parse_arguments()
+    monitor_name = args.name
+
+    if not monitor_name:
+        print("Error: Please provide a name for the monitor using the --name argument.")
+        exit(1)
 
     cronitor_api_key = get_cronitor_api_key()
     local_crontab_jobs = list_crontab_jobs()
@@ -90,24 +99,22 @@ if __name__ == "__main__":
 
     for job in local_crontab_jobs:
         monitor_id = get_monitor_id_from_job(job)
+        should_create_monitor = True
+
         if monitor_id:
             if monitor_id in existing_monitor_ids:
-                print(f"Monitor with ID {monitor_id} already exists for this job, skipping creation.")
-                continue
+                print(f"Monitor with ID {monitor_id} already exists for this job, no action needed.")
+                should_create_monitor = False
             else:
-                print(f"Monitor ID {monitor_id} found in the job, but not in the dashboard, updating job.")
+                # Monitor ID from the job does not exist in the dashboard
+                # Remove the non-existing monitor ID from the job
+                job = remove_cronitor_exec_from_job(job)
+                print(f"Monitor ID {monitor_id} from the job does not exist on the dashboard. Creating a new monitor.")
 
-        job_parts = job.split()
-        cron_schedule = ' '.join(job_parts[:5])
-        command_parts = job_parts[5:]
-        command = ' '.join(command_parts).replace(f"cronitor exec {monitor_id} ", "") if monitor_id else ' '.join(command_parts)
-
-        monitor_name = args.name
-        if not monitor_name:
-            print("Error: Please provide a name for the monitor using the --name argument.")
-            exit(1)
-
-        if monitor_id not in existing_monitor_ids:
-            monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
-            if monitor_id:
-                update_crontab_with_monitor(job, monitor_id)
+        if should_create_monitor:
+            job_parts = job.split()
+            cron_schedule = ' '.join(job_parts[:5])
+            command = ' '.join(job_parts[5:])
+            new_monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
+            if new_monitor_id:
+                update_crontab_with_monitor(job, new_monitor_id)
