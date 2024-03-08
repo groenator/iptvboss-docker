@@ -93,7 +93,8 @@ docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvbo
 ## Tasks to improve
 
 [x] Pushing the docker image to an actual docker registry.
+
 [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
-  - At the moment, anytime the container is restarted it will re-create the cronitor jobs again.
-  - If that's the case, delete the old jobs and use the new ones.
-  - Run `crontab -l` inside the docker container to see the cronitor job ID and compare it with the cronitor.io dashboard.
+- Currently, anytime the container is restarted it will re-create the cronitor job again.
+- If that's the case, delete the old jobs and use the new ones.
+- Run `crontab -l` inside the docker container to see the cronitor job ID and compare it with the cronitor.io dashboard.
