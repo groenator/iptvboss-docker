@@ -31,10 +31,7 @@ Use Docker Compose to manage the Docker container. An example docker-compose.yml
 version: "2.1"
 services:
   iptvboss:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: iptvboss
+    image: ghcr.io/groenator/iptvboss-docker:latest
     environment:
       CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
@@ -53,7 +50,7 @@ docker-compose up -d
 Alternatively, you can run the Docker container using the following command:
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss iptvboss
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
 ```
 
 ## Accessing the VNC Server
@@ -87,10 +84,16 @@ To enable Cronitor monitoring, set the build argument while building the image:
 docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
 
+Run it:
+
+```bash
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
+```
+
 ## Tasks to improve
 
-- Pushing the docker image to an actual docker registry.
-- Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
+[x] Pushing the docker image to an actual docker registry.
+[ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
   - At the moment, anytime the container is restarted it will re-create the cronitor jobs again.
   - If that's the case, delete the old jobs and use the new ones.
   - Run `crontab -l` inside the docker container to see the cronitor job ID and compare it with the cronitor.io dashboard.
