@@ -70,7 +70,7 @@ docker build -t iptvboss .
 You can run the Docker container using the following command:
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss iptvboss
 ```
 
 ## Cronitor Integration (Optional)
@@ -112,7 +112,7 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<your_cronitor_api_key>" ghcr.io/groenator/iptvboss-docker:latest
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<your_cronitor_api_key>" iptvboss
 ```
 
 ## Tasks to improve
