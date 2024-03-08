@@ -17,12 +17,6 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can 
 - Automatically configuring the cron job for updating the tasks.
 - Cronitor.io integration for monitoring the cron job(optional)
 
-## Building the Docker Image
-
-```bash
-docker build -t iptvboss .
-```
-
 ## Docker Compose (preferred way)
 
 Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
@@ -47,7 +41,13 @@ Adjust the configuration as needed and run:
 docker-compose up -d
 ```
 
-Alternatively, you can run the Docker container using the following command:
+## Building the Docker Image
+
+```bash
+docker build -t iptvboss .
+```
+
+You can run the Docker container using the following command:
 
 ```bash
 docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
@@ -63,13 +63,15 @@ To connect to the VNC server using a VNC client, use the following address:
 
 To connect to the VNC server using a web browser, use the following address.
 
-`http://<your-machine-ip>:6901/password=vncpassword`. Alternatively, if you deploy it locally replace IP with `localhost`.
+`http://<your-machine-ip>:6901/password=vncpassword`.
+
+If you deploy it outside of your locally replace IP with `localhost`.
 
 The default password is `vncpassword`. Replace localhost with your actual server IP address.
 
 ## Cron Job
 
-A cron job is set up to perform periodic EPG update tasks. You can modify the cron schedule by editing the iptvboss-cron file.
+A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by editing the iptvboss-cron file.
 
 ## Cronitor Integration (Optional)
 
@@ -84,7 +86,7 @@ To enable Cronitor monitoring, set the build argument while building the image:
 docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
 
-Run it:
+Run it using docker-compose as shown above or using the following command:
 
 ```bash
 docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
