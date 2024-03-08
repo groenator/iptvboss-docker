@@ -26,8 +26,6 @@ version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
-    environment:
-      CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
       - 5901:5901
       - 6901:6901
@@ -39,18 +37,6 @@ Adjust the configuration as needed and run:
 
 ```bash
 docker-compose up -d
-```
-
-## Building the Docker Image
-
-```bash
-docker build -t iptvboss .
-```
-
-You can run the Docker container using the following command:
-
-```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
 ```
 
 ## Accessing the VNC Server
@@ -71,7 +57,21 @@ The default password is `vncpassword`. Replace localhost with your actual server
 
 ## Cron Job
 
-A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by editing the iptvboss-cron file.
+A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by editing the iptvboss-cron file. You can add more jobs if needed.
+
+## Building the Docker Image (not necessary)
+
+GitHub Actions is building the image automatically and push it to the GitHub Container Registry. However, if you choose to modify the image with your own settings, then you can also build the image manually using the following command:
+
+```bash
+docker build -t iptvboss .
+```
+
+You can run the Docker container using the following command:
+
+```bash
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
+```
 
 ## Cronitor Integration (Optional)
 
@@ -86,10 +86,33 @@ To enable Cronitor monitoring, set the build argument while building the image:
 docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
 
-Run it using docker-compose as shown above or using the following command:
+Run it using docker-compose;
+```yaml
+version: "2.1"
+services:
+  iptvboss:
+    image: ghcr.io/groenator/iptvboss-docker:latest
+    environment:
+      CRONITOR_API_KEY: "<your_cronitor_api_key>"
+    ports:
+      - 5901:5901
+      - 6901:6901
+    volumes:
+    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss
+      - <local_volume>:/headless/IPTVBoss
+```
+
+Add the cronitor API key to the environment section of the docker-compose file. Run the following command to start the container:
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss ghcr.io/groenator/iptvboss-docker:latest
+docker-compose up -d
+```
+
+Or using the following command:
+
+```bash
+# Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
+docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<your_cronitor_api_key>" ghcr.io/groenator/iptvboss-docker:latest
 ```
 
 ## Tasks to improve
