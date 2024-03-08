@@ -1,20 +1,14 @@
 version: "2.1"
 services:
   iptvboss:
-    restart: always
     build:
       context: .
       dockerfile: Dockerfile
     container_name: iptvboss
     environment:
-    - CRONITOR_API_KEY=7151dcaa743f43e3b5f3c64fb4649dd9
-    networks:
-    - portainer_network
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
       - 5901:5901
       - 6901:6901
     volumes:
-      - /nfs/container/iptvboss/IPTVBoss:/headless/IPTVBoss
-networks:
-  portainer_network:
-    external: true
+      - <local_volume>:/headless/IPTVBoss # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss
