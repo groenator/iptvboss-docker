@@ -1,10 +1,7 @@
 version: "2.1"
 services:
   iptvboss:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: iptvboss
+    image: ghcr.io/groenator/iptvboss-docker:latest
     environment:
       CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
