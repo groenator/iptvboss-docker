@@ -45,7 +45,7 @@ RUN crontab -u iptvboss /etc/cron.d/iptvboss-cron &&  \
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
 # Switch back to the non-root user
-USER 1000
+USER iptvboss
 
 # Expose VNC port
 EXPOSE 5901
