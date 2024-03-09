@@ -26,6 +26,8 @@ version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
+    environment:
+      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
     ports:
       - 5901:5901
       - 6901:6901
@@ -95,6 +97,7 @@ services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
     environment:
+      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
     ports:
       - 5901:5901
@@ -121,6 +124,7 @@ docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<yo
 
 [x] Pushing the docker image to an actual docker registry.
 [ ] Configure IPTVBoss XC to start on boot.
+[ ] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
 [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
 - Currently, anytime the container is restarted it will re-create the cronitor job.
 - If that's the case, delete the old jobs and use the new ones.

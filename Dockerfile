@@ -34,24 +34,23 @@ RUN curl https://cronitor.io/install-linux?sudo=1 | sh
 RUN useradd -m -d /headless -s /bin/bash iptvboss
 
 # Copy the cron file to the cron.d directory
-COPY iptvboss-cron /etc/cron.d/iptvboss-cron
+COPY iptvboss-cron /headless/iptvboss-cron
 
 # Give execution rights on the cron job
-RUN crontab -u iptvboss /etc/cron.d/iptvboss-cron &&  \
+RUN crontab -u iptvboss /headless/iptvboss-cron &&  \
     chmod u+s /usr/sbin/cron && \
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
 
 ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 
-# Switch back to the non-root user
-USER iptvboss
-
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901
 
+# Switch back to the non-root user
+USER iptvboss
+
 # Execute the shell script
 COPY entrypoint.sh /headless/entrypoint.sh
-
 ENTRYPOINT ["/headless/entrypoint.sh"]
