@@ -86,6 +86,8 @@ To enable Cronitor monitoring, set the build argument while building the image:
 docker build -t iptvboss --build-arg CRONITOR_API_KEY=your_api_key .
 ```
 
+- Note: The volume is mounted to the `/headless/IPTVBoss` directory in the container. If the volume mounted doesn't have the correct permissions IPTVBoss will not work and start. Before mounting the volume make sure the permissions on the local folder are set correctly.
+
 Run it using docker-compose;
 ```yaml
 version: "2.1"
@@ -118,7 +120,7 @@ docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<yo
 ## Tasks to improve
 
 [x] Pushing the docker image to an actual docker registry.
-
+[ ] Configure IPTVBoss XC to start on boot.
 [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
 - Currently, anytime the container is restarted it will re-create the cronitor job.
 - If that's the case, delete the old jobs and use the new ones.
