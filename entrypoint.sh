@@ -17,7 +17,7 @@ fi
 # Update the cron job schedule based on the environment variable
 if [ -n "$CRON_SCHEDULE" ]; then
     update_cron_schedule "$CRON_SCHEDULE"
-    echo "CRON_SCHEDULE set for $CRON_SCHEDULE defined. Updated the cron job schedule."
+    echo "CRON_SCHEDULE set for $CRON_SCHEDULE as defined. Updated the cron job schedule."
 else
     echo "CRON_SCHEDULE not set. Using default schedule."
 fi
