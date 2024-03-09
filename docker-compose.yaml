@@ -3,6 +3,7 @@ services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
     environment:
+      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
     ports:
       - 5901:5901
