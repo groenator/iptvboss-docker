@@ -19,6 +19,15 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can 
 - Automatically configuring the cron job for updating the tasks.
 - Cronitor.io integration for monitoring the cron job(optional)
 
+## Tasks list
+
+- [x] Pushing the docker image to an actual docker registry.
+- [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
+- [ ] Configure IPTVBoss XC to start on boot.
+- [ ] Allow users to use audio within the container.
+- [ ] Start the container defining your own user.
+- [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
+
 ## Docker Compose (preferred way)
 
 Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
@@ -155,14 +164,5 @@ Or using the following command:
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
 docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" iptvboss
 ```
-
-## Tasks to improve
-
-- [x] Pushing the docker image to an actual docker registry.
-- [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
-- [ ] Configure IPTVBoss XC to start on boot.
-- [ ] Allow users to use audio within the container.
-- [ ] Start the container defining your own user.
-- [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
 
 **Note:** *Currently, anytime the container is restarted it will re-create the cronitor job. If that's the case, delete the old jobs and use the new ones. Run `crontab -l` inside the docker container to see the cronitor job ID and compare it with the cronitor.io dashboard.*
