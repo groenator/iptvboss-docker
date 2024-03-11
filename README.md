@@ -14,6 +14,8 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can 
 
 - Debian-based VNC server.
 - IPTVBoss application pre-installed.
+- Run the container as a non-root user and you can also change the user and group ID of the container.
+- Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
 - Automatically configuring the cron job for updating the tasks.
 - Cronitor.io integration for monitoring the cron job(optional)
 
@@ -26,7 +28,9 @@ version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
+    user: "1000:1000" # Set the user and group ID for the container.
     environment:
+      TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
     ports:
       - 5901:5901
@@ -40,6 +44,34 @@ Adjust the configuration as needed and run:
 ```bash
 docker-compose up -d
 ```
+
+## Override VNC environment variables
+
+The following VNC environment variables can be overwritten at the docker run phase to customize your desktop environment inside the container:
+
+```bash
+VNC_COL_DEPTH, default: 24
+VNC_RESOLUTION, default: 1280x1024
+VNC_PW, default: my-pw
+VNC_PASSWORDLESS, default: <not set>
+```
+
+## Change User of running VNC Container via docker run command
+
+Per default, all container processes will be executed with user id 1000. You can change the user id as follows:
+
+- Using root (user id 0)
+
+Add the --user flag to your docker run command:
+
+`docker run -it --user 0 -p 6911:6901 --privileged=true --device=/dev/snd:/dev/snd ghcr.io/groenator/iptvboss-docker:latest`
+
+- Using user and group id of host system
+
+Add the --user flag to your docker run command:
+
+`docker run -it -p 6911:6901 --user $(id -u):$(id -g) --privileged=true --device=/dev/snd:/dev/snd ghcr.io/groenator/iptvboss-docker:latest`
+
 
 ## Accessing the VNC Server
 
@@ -72,7 +104,7 @@ docker build -t iptvboss .
 You can run the Docker container using the following command:
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss iptvboss
+docker run -d -p 5901:5901 -p 6901:6901 --privileged=true --device=/dev/snd:/dev/snd --name iptvboss iptvboss
 ```
 
 ## Cronitor Integration (Optional)
@@ -95,10 +127,13 @@ Run it using docker-compose;
 version: "2.1"
 services:
   iptvboss:
+    user: "1000:1000" # Set the user and group ID for the container.
     image: ghcr.io/groenator/iptvboss-docker:latest
+    - /dev/snd:/dev/snd
     environment:
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
+      TZ: "US/Eastern" #Set the timezone for the container.
     ports:
       - 5901:5901
       - 6901:6901
@@ -117,7 +152,7 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss -e CRONITOR_API_KEY="<your_cronitor_api_key>" iptvboss
+docker run -d -p 5901:5901 -p 6901:6901 --privileged=true --device=/dev/snd:/dev/snd --name iptvboss -e CRONITOR_API_KEY="<your_cronitor_api_key>" iptvboss
 ```
 
 ## Tasks to improve
