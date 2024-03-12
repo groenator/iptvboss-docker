@@ -15,6 +15,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 
 - Debian-based VNC server.
 - IPTVBoss application pre-installed.
+- XC Server starting on boot.
 - Run the container as a non-root user and you can also change the user and group ID of the container.
 - Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
 - Automatically configuring the cron job for updating the EPG.
@@ -22,7 +23,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 
 ## Tasks list
 
-- [ ] Configure IPTVBoss XC to start on boot.
+- [x] Configure IPTVBoss XC to start on boot.
 - [ ] Allow users to use audio within the container.
 - [x] Pushing the docker image to an actual docker registry.
 - [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
@@ -35,6 +36,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 
 - *The volume is mounted to the `/headless/IPTVBoss` directory in the container.If the volume mounted doesn't have the correct permissions IPTVBoss will NOT start. Before mounting the volume make sure the permissions on the local folder are set correctly.*
 - *A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by setting the CRON_SCHEDULE environment variable with your own schedule.*
+- To use XC server you need to expose the port 8001. If you don't need it, you can remove the port from the docker-compose file. Access the XC server via your browser at `http://<your-machine-ip>:8001`.
 
 Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
 
@@ -47,6 +49,7 @@ services:
       TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
     ports:
+      - 8001:8001
       - 5901:5901
       - 6901:6901
     volumes:
@@ -68,13 +71,13 @@ Per default, all container processes will be executed with user id 1000. You can
 
 Add the --user flag to your docker run command:
 
-`docker run -it -p 6911:6901 --user $(0):$(0) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
+`docker run -it -p 6911:6901 -p 8001:8001 --user $(0):$(0) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
 
 - Using user and group id of host system
 
 Add the --user flag to your docker run command:
 
-`docker run -it -p 6911:6901 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
+`docker run -it -p 6911:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
 
 Alternatively, you can also set the user and group id in the docker-compose file:
 
@@ -88,6 +91,7 @@ services:
       TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
     ports:
+      - 8001:8001
       - 5901:5901
       - 6901:6901
     volumes:
@@ -149,6 +153,7 @@ services:
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
       TZ: "US/Eastern" #Set the timezone for the container.
     ports:
+      - 8001:8001
       - 5901:5901
       - 6901:6901
     volumes:
@@ -167,7 +172,7 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -d -p 5901:5901 -p 6901:6901 --name iptvboss --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" iptvboss
+docker run -d -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" iptvboss
 ```
 
 ## Building the Docker Image (not necessary)
@@ -181,5 +186,5 @@ docker build -t iptvboss .
 You can run the Docker container using the following command:
 
 ```bash
-docker run -d -p 5901:5901 -p 6901:6901 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" --name iptvboss iptvboss
+docker run -d -p 5901:5901 -p 6901:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" --name iptvboss iptvboss
 ```
