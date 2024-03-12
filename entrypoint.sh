@@ -8,11 +8,15 @@ update_cron_schedule() {
     crontab -u iptvboss /headless/iptvboss-cron
 }
 
-if [ -n "$CRONITOR_API_KEY" ]; then
-    cronitor discover --auto --api-key "$CRONITOR_API_KEY" &
-else
-    echo "CRONITOR_API_KEY not set. Skiping cronitor configuration."
-fi
+# Function to configure cronitor
+configure_cronitor() {
+    python3 /headless/scripts/cronitor.py --name "$CRONITOR_SCHEDULE_NAME"
+    if [ $? -eq 0 ]; then
+        echo "Cronitor configuration completed successfully."
+    else
+        echo "Error: Cronitor configuration failed." >&2
+    fi
+}
 
 # Update the cron job schedule based on the environment variable
 if [ -n "$CRON_SCHEDULE" ]; then
@@ -22,11 +26,19 @@ else
     echo "CRON_SCHEDULE not set. Using default schedule."
 fi
 
+# Configure cronitor
+if [ -n "$CRONITOR_API_KEY" ]; then
+    configure_cronitor
+else
+    echo "CRONITOR_API_KEY not set. Skiping cronitor configuration."
+fi
+
+# Start cron daemon and vnc service
 echo "start cron daemon"
 cron &
 echo "cron daemon started"
 
+# Start vnc service
 echo "start vnc service"
 /dockerstartup/vnc_startup.sh --wait
 echo "vnc service started successfully"
-```

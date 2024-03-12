@@ -15,9 +15,17 @@ WORKDIR /headless
 RUN apt-get update && apt-get upgrade -y
 
 # Install necessary dependencies
-RUN apt-get install --no-install-recommends wget cron curl sudo dpkg-dev rclone vlc -y jq libgtk2.0-0 libavcodec-extra* &&  \
+RUN apt-get install --no-install-recommends -y wget cron curl sudo \
+    dpkg-dev rclone vlc python3 python3-pip jq \
+    libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Copy the Python script into the container
+COPY cronitor.py /headless/scripts/
+
+# Install Python dependencies
+RUN pip3 install requests
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \

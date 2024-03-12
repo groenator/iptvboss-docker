@@ -30,6 +30,12 @@ def list_monitors(api_key):
         print(f"Error: Unable to list monitors. {e}")
         return []
 
+def get_monitor_name(monitors, monitor_name):
+    for monitor in monitors:
+        if monitor.get('name') == monitor_name:
+            return monitor
+    return None
+
 def create_monitor(api_key, cron_schedule, command, name):
     try:
         data = {
@@ -49,6 +55,19 @@ def create_monitor(api_key, cron_schedule, command, name):
         if 'response' in locals() and response.status_code == 400:
             print(f"Details: {response.json()}")
         return None
+
+def delete_monitor(api_key, monitor_id):
+    try:
+        url = f"{MONITOR_URL}/{monitor_id}"
+        response = requests.delete(url, auth=(api_key, ''))
+        response.raise_for_status()
+        print(f"Deleted monitor with ID: {monitor_id}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Unable to delete monitor. {e}")
+        if 'response' in locals() and response.status_code == 404:
+            print(f"Monitor with ID {monitor_id} does not exist or has already been deleted.")
+        elif 'response' in locals():
+            print(f"Details: {response.text}")
 
 def update_crontab_with_monitor(job, monitor_id):
     # Generate the new job line with the monitor ID
@@ -95,26 +114,33 @@ if __name__ == "__main__":
     cronitor_api_key = get_cronitor_api_key()
     local_crontab_jobs = list_crontab_jobs()
     cronitor_monitors = list_monitors(cronitor_api_key)
-    existing_monitor_ids = {monitor.get('key') for monitor in cronitor_monitors}
+
+     # This dictionary will map monitor names to their IDs
+    existing_monitors = {monitor['name']: monitor['key'] for monitor in cronitor_monitors}
 
     for job in local_crontab_jobs:
         monitor_id = get_monitor_id_from_job(job)
+        job_without_monitor = remove_cronitor_exec_from_job(job)
         should_create_monitor = True
 
-        if monitor_id:
-            if monitor_id in existing_monitor_ids:
-                print(f"Monitor with ID {monitor_id} already exists for this job, no action needed.")
-                should_create_monitor = False
-            else:
-                # Monitor ID from the job does not exist in the dashboard
-                # Remove the non-existing monitor ID from the job
-                job = remove_cronitor_exec_from_job(job)
-                print(f"Monitor ID {monitor_id} from the job does not exist on the dashboard. Creating a new monitor.")
+    if monitor_name in existing_monitors:
+        existing_monitor_id = existing_monitors[monitor_name]
+        if monitor_id == existing_monitor_id:
+            print(f"Monitor named '{monitor_name}' with ID {monitor_id} already exists for this job, no action needed.")
+            should_create_monitor = False
+        else:
+            print(f"Monitor named '{monitor_name}' exists but with a different ID. Updating the crontab with the correct monitor ID.")
+            update_crontab_with_monitor(job_without_monitor, existing_monitor_id)
+            if monitor_id:
+                delete_monitor(cronitor_api_key, monitor_id)
+            should_create_monitor = False
 
-        if should_create_monitor:
-            job_parts = job.split()
-            cron_schedule = ' '.join(job_parts[:5])
-            command = ' '.join(job_parts[5:])
-            new_monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
-            if new_monitor_id:
-                update_crontab_with_monitor(job, new_monitor_id)
+    if should_create_monitor:
+        # No monitor with the given name exists or the monitor ID in the job does not match. # Create a new monitor and update the crontab
+        print(f"Creating a new monitor named '{monitor_name}'.")
+        job_parts = job_without_monitor.split()
+        cron_schedule = ' '.join(job_parts[:5])
+        command = ' '.join(job_parts[5:])
+        new_monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
+        if new_monitor_id:
+            update_crontab_with_monitor(job_without_monitor, new_monitor_id)

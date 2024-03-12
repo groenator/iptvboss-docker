@@ -24,9 +24,9 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can 
 - [x] Pushing the docker image to an actual docker registry.
 - [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
 - [ ] Configure IPTVBoss XC to start on boot.
-- [ ] Allow users to use audio within the container.
-- [ ] Start the container defining your own user.
-- [ ] Creating a script to configure the cronitor jobs automatically without re-create the job is they are already available in the account.
+- [x] Allow users to use audio within the container.
+- [x] Start the container defining your own user.
+- [ ] Creating a script to configure the cronitor jobs automatically without re-creating the job if is already available in the account.
 
 ## Docker Compose (preferred way)
 
