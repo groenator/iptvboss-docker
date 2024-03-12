@@ -16,7 +16,7 @@ RUN apt-get update && apt-get upgrade -y
 
 # Install necessary dependencies
 RUN apt-get install --no-install-recommends -y wget cron curl sudo \
-    dpkg-dev rclone vlc python3 python3-pip jq \
+    dpkg-dev rclone vlc python3 python3-pip jq supervisor \
     libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -39,7 +39,11 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
 RUN curl https://cronitor.io/install-linux?sudo=1 | sh
 
 # Create a new user with home directory set to /he  adless
-RUN useradd -m -d /headless -s /bin/bash iptvboss
+RUN useradd -m -d /headless -s /bin/bash iptvboss && \
+    chown -R iptvboss:iptvboss /var/log/supervisor/
+
+# Copy Supervisor configuration file
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy the cron file to the cron.d directory
 COPY iptvboss-cron /headless/iptvboss-cron
@@ -55,10 +59,15 @@ ENV PATH="/usr/lib/iptvboss/bin:${PATH}"
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901
+EXPOSE 8001
 
 # Switch back to the non-root user
 USER iptvboss
 
 # Execute the shell script
 COPY entrypoint.sh /headless/entrypoint.sh
-ENTRYPOINT ["/headless/entrypoint.sh"]
+
+#ENTRYPOINT ["/headless/entrypoint.sh"]
+# Execute Supervisor as the entrypoint
+# Start the shell script
+CMD ["/bin/bash", "-c", "/headless/entrypoint.sh && /usr/bin/supervisord -c /etc/supervisor/supervisord.conf"]

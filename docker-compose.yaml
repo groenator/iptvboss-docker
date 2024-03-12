@@ -7,6 +7,7 @@ services:
       CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
     ports:
+      - 8001:8001
       - 5901:5901
       - 6901:6901
     volumes:

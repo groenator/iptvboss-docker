@@ -33,12 +33,17 @@ else
     echo "CRONITOR_API_KEY not set. Skiping cronitor configuration."
 fi
 
-# Start cron daemon and vnc service
-echo "start cron daemon"
-cron &
-echo "cron daemon started"
+# # Start cron daemon and vnc service
+# echo "start cron daemon"
+# cron &
+# echo "cron daemon started"
 
-# Start vnc service
+#Start vnc service
 echo "start vnc service"
 /dockerstartup/vnc_startup.sh --wait
 echo "vnc service started successfully"
+
+# # Start the XC Server on boot
+# echo "starting XC Server"
+# /usr/bin/iptvboss -xcserver &
+# echo "XC Server started"
