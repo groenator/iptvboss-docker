@@ -2,6 +2,7 @@
 
 This Docker image provides a VNC server with the IPTVBoss application.
 IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
+Users can play videos with audio enabled by default.
 It includes the option to configure Cronitor to monitor the local cron jobs. View the instructions below to enable Cronitor monitoring.
 
 ## Prerequisites
@@ -16,6 +17,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 - Debian-based VNC server.
 - IPTVBoss application pre-installed.
 - XC Server starting on boot.
+- Audio is enabled by default. Users can play videos with audio from the browser.
 - Run the container as a non-root user and you can also change the user and group ID of the container.
 - Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
 - Automatically configuring the cron job for updating the EPG.
@@ -24,7 +26,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 ## Tasks list
 
 - [x] Configure IPTVBoss XC to start on boot.
-- [ ] Allow users to use audio within the container.
+- [x] Allow users to use audio within the container.
 - [x] Pushing the docker image to an actual docker registry.
 - [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
 - [x] Start the container defining your own user.
@@ -45,6 +47,11 @@ version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
+    devices:
+      - /dev/snd:/dev/snd # Required for audio support
+    privileged: true # Required for audio support
+    group_add:
+      - audio # Required for audio support
     environment:
       TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
@@ -71,13 +78,13 @@ Per default, all container processes will be executed with user id 1000. You can
 
 Add the --user flag to your docker run command:
 
-`docker run -it -p 6911:6901 -p 8001:8001 --user $(0):$(0) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
+`docker run -it -p 6911:6901 -p 8001:8001 --user $(0):$(0) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
 
 - Using user and group id of host system
 
 Add the --user flag to your docker run command:
 
-`docker run -it -p 6911:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
+`docker run -it -p 6911:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
 
 Alternatively, you can also set the user and group id in the docker-compose file:
 
@@ -87,6 +94,11 @@ services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
     user: "1000:1000" # Set the user and group ID for the container.
+    devices:
+    - /dev/snd:/dev/snd # Required for audio support
+    privileged: true # Required for audio support
+    group_add:
+      - audio # Required for audio support
     environment:
       TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
@@ -147,6 +159,11 @@ services:
   iptvboss:
     user: "1000:1000" # Set the user and group ID for the container.
     image: ghcr.io/groenator/iptvboss-docker:latest
+    devices:
+      - /dev/snd:/dev/snd # Required for audio support
+    privileged: true # Required for audio support
+    group_add:
+      - audio # Required for audio support
     environment:
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
@@ -172,19 +189,5 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -d -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" iptvboss
-```
-
-## Building the Docker Image (not necessary)
-
-GitHub Actions is building the image automatically and push it to the GitHub Container Registry. However, if you choose to modify the Dockerfile with your own settings, then you can also build the image manually using the following command:
-
-```bash
-docker build -t iptvboss .
-```
-
-You can run the Docker container using the following command:
-
-```bash
-docker run -d -p 5901:5901 -p 6901:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" --name iptvboss iptvboss
+docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss --user $(<your-ID>):$(<your-ID>) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" iptvboss
 ```

@@ -2,13 +2,18 @@ version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest
+    devices:
+      - /dev/snd:/dev/snd # Required for audio support
     environment:
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>" #Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
+    privileged: true
     ports:
       - 8001:8001
       - 5901:5901
       - 6901:6901
+    group_add:
+      - audio # Required for audio support
     volumes:
       - <local_volume>:/headless/IPTVBoss # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss
