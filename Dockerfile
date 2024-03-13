@@ -4,6 +4,7 @@ FROM consol/debian-xfce-vnc
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
+ENV DEBIAN_FRONTEND noninteractive
 
 # Switch to root temporarily to perform system updates
 USER 0
@@ -12,10 +13,12 @@ USER 0
 WORKDIR /headless
 
 # Update package list and upgrade installed packages
-RUN apt-get update && apt-get upgrade -y
+RUN apt-get update -y && apt-get upgrade -y
 
 # Install necessary dependencies
-RUN apt-get install -y --no-install-recommends wget cron curl sudo dpkg-dev vlc python3 python3-pip jq supervisor \
+RUN apt-get install -y --no-install-recommends \
+    wget cron curl sudo dpkg-dev vlc alsa-oss alsa-utils libsndfile1-dev \
+    python3 python3-pip jq supervisor \
     libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -38,7 +41,8 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
 RUN curl https://cronitor.io/install-linux?sudo=1 | sh
 
 # Create a new user with home directory set to /he  adless
-RUN useradd -m -d /headless -s /bin/bash iptvboss && \
+RUN groupadd iptvboss && useradd -g iptvboss -m -d /headless -s /bin/bash iptvboss && \
+    usermod -aG audio iptvboss && \
     chown -R iptvboss:iptvboss /var/log/supervisor/
 
 # Copy Supervisor configuration file
@@ -66,7 +70,5 @@ USER iptvboss
 # Execute the shell script
 COPY entrypoint.sh /headless/entrypoint.sh
 
-#ENTRYPOINT ["/headless/entrypoint.sh"]
 # Execute Supervisor as the entrypoint
-# Start the shell script
 CMD ["/bin/bash", "-c", "/headless/entrypoint.sh && /usr/bin/supervisord -c /etc/supervisor/supervisord.conf"]
