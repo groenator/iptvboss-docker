@@ -15,8 +15,7 @@ WORKDIR /headless
 RUN apt-get update && apt-get upgrade -y
 
 # Install necessary dependencies
-RUN apt-get install --no-install-recommends -y wget cron curl sudo \
-    dpkg-dev rclone vlc python3 python3-pip jq supervisor \
+RUN apt-get install -y --no-install-recommends wget cron curl sudo dpkg-dev vlc python3 python3-pip jq supervisor \
     libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
