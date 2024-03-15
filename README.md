@@ -4,6 +4,7 @@ This Docker image provides a VNC server with the IPTVBoss application.
 IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 Users can play videos with audio enabled by default.
 It includes the option to configure Cronitor to monitor the local cron jobs. View the instructions below to enable Cronitor monitoring.
+rclone is also installed in the container to allow users to sync their IPTVBoss data to a cloud storage provider.
 
 ## Prerequisites
 
@@ -22,6 +23,7 @@ It includes the option to configure Cronitor to monitor the local cron jobs. Vie
 - Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
 - Automatically configuring the cron job for updating the EPG.
 - Cronitor.io integration for monitoring the cron job(optional)
+- rclone support to sync IPTVBoss data to a cloud storage provider.
 
 ## Tasks list
 
