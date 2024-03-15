@@ -18,7 +18,7 @@ RUN apt-get update -y && apt-get upgrade -y
 # Install necessary dependencies
 RUN apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev vlc alsa-oss alsa-utils libsndfile1-dev \
-    python3 python3-pip jq supervisor \
+    python3 python3-pip jq rclone supervisor \
     libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
