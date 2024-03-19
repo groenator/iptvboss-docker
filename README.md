@@ -17,9 +17,9 @@
 
 - Debian-based VNC server.
 - IPTVBoss application pre-installed.
-- XC Server starting on boot.
+- XC Server starting on boot only when setting the `XC_SERVER=true` variable, otherwise it won't start.
 - Audio is enabled by default. Users can play videos with audio from the browser.
-- Run the container as a non-root user and you can also change the user and group ID of the container.
+- Run the container as a non-root user with the desire PUID and PGID set up.
 - Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
 - Automatically configuring the cron job for updating the EPG.
 - Cronitor.io integration for monitoring the cron job(optional)
@@ -55,14 +55,17 @@ services:
     group_add:
       - audio # Required for audio support
     environment:
+      PUID: "1000" # Set the user ID for the container.
+      PGID: "1000" # Set the group ID for the container.
       TZ: "US/Eastern" #Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
+      XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
       - 8001:8001
       - 5901:5901
       - 6901:6901
     volumes:
-    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss. Make sure the local folder has the correct permissions, otherwise IPTVBoss will not start.
+    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss. Based on the PUID and PGID environment variables the folder permissions are set on runtime.
       - <local_volume>:/headless/IPTVBoss
 ```
 
@@ -74,44 +77,11 @@ docker-compose up -d
 
 ## Change User of running VNC Container
 
-Per default, all container processes will be executed with user id 1000. You can change the user id as follows:
+The user can define their own PUID and PGID to run the container as a non-root user. This is useful for security reasons. The user can also set the user and group ID of the host system to run the container as the same user and group of the host system.
 
-- Using root (user id 0)
+`docker run -it -p 6911:6901 -p 8001:8001 -e PUID=1001 -e PGID=1001 --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern -e XC_SERVER=true ghcr.io/groenator/iptvboss-docker:latest`
 
-Add the --user flag to your docker run command:
-
-`docker run -it -p 6911:6901 -p 8001:8001 --user $(0):$(0) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
-
-- Using user and group id of host system
-
-Add the --user flag to your docker run command:
-
-`docker run -it -p 6911:6901 -p 8001:8001 --user $(<your-ID>):$(<your-ID>) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern ghcr.io/groenator/iptvboss-docker:latest`
-
-Alternatively, you can also set the user and group id in the docker-compose file:
-
-```yaml
-version: "2.1"
-services:
-  iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest
-    user: "1000:1000" # Set the user and group ID for the container.
-    devices:
-    - /dev/snd:/dev/snd # Required for audio support
-    privileged: true # Required for audio support
-    group_add:
-      - audio # Required for audio support
-    environment:
-      TZ: "US/Eastern" #Set the timezone for the container.
-      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
-    ports:
-      - 8001:8001
-      - 5901:5901
-      - 6901:6901
-    volumes:
-    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss. Make sure the local folder has the correct permissions, otherwise IPTVBoss will not start.
-      - <local_volume>:/headless/IPTVBoss
-```
+Alternatively, you can also set the user and group id using the PUID and PGID environment variables in the docker-compose file as showing above.
 
 Then, run the bellow command:
 
@@ -159,7 +129,6 @@ To enable Cronitor monitoring, set the CRONITOR_API_KEY environment variable to 
 version: "2.1"
 services:
   iptvboss:
-    user: "1000:1000" # Set the user and group ID for the container.
     image: ghcr.io/groenator/iptvboss-docker:latest
     devices:
       - /dev/snd:/dev/snd # Required for audio support
@@ -167,9 +136,12 @@ services:
     group_add:
       - audio # Required for audio support
     environment:
+      PUID: "1000" # Set the user ID for the container.
+      PGID: "1000" # Set the group ID for the container.
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
+      XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
       TZ: "US/Eastern" #Set the timezone for the container.
     ports:
       - 8001:8001
@@ -191,5 +163,5 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss --user $(<your-ID>):$(<your-ID>) --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" iptvboss
+docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss  -e PUID=1000 -e PGID=1000 -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" -e XC_SERVER=true --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss iptvboss
 ```
