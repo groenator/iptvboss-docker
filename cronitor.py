@@ -115,7 +115,7 @@ if __name__ == "__main__":
     local_crontab_jobs = list_crontab_jobs()
     cronitor_monitors = list_monitors(cronitor_api_key)
 
-     # This dictionary will map monitor names to their IDs
+    # This dictionary will map monitor names to their IDs
     existing_monitors = {monitor['name']: monitor['key'] for monitor in cronitor_monitors}
 
     for job in local_crontab_jobs:
@@ -123,24 +123,23 @@ if __name__ == "__main__":
         job_without_monitor = remove_cronitor_exec_from_job(job)
         should_create_monitor = True
 
-    if monitor_name in existing_monitors:
-        existing_monitor_id = existing_monitors[monitor_name]
-        if monitor_id == existing_monitor_id:
-            print(f"Monitor named '{monitor_name}' with ID {monitor_id} already exists for this job, no action needed.")
-            should_create_monitor = False
-        else:
-            print(f"Monitor named '{monitor_name}' exists but with a different ID. Updating the crontab with the correct monitor ID.")
-            update_crontab_with_monitor(job_without_monitor, existing_monitor_id)
-            if monitor_id:
-                delete_monitor(cronitor_api_key, monitor_id)
-            should_create_monitor = False
+        if monitor_name in existing_monitors:
+            existing_monitor_id = existing_monitors[monitor_name]
+            if monitor_id == existing_monitor_id:
+                print(f"Monitor named '{monitor_name}' with ID {monitor_id} already exists for this job, no action needed.")
+                should_create_monitor = False
+            else:
+                print(f"Monitor named '{monitor_name}' exists but with a different ID. Updating the crontab with the correct monitor ID.")
+                update_crontab_with_monitor(job_without_monitor, existing_monitor_id)
+                if monitor_id:
+                    delete_monitor(cronitor_api_key, monitor_id)
+                should_create_monitor = False
 
-    if should_create_monitor:
-        # No monitor with the given name exists or the monitor ID in the job does not match. # Create a new monitor and update the crontab
-        print(f"Creating a new monitor named '{monitor_name}'.")
-        job_parts = job_without_monitor.split()
-        cron_schedule = ' '.join(job_parts[:5])
-        command = ' '.join(job_parts[5:])
-        new_monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
-        if new_monitor_id:
-            update_crontab_with_monitor(job_without_monitor, new_monitor_id)
+        if should_create_monitor:
+            print(f"Creating a new monitor named '{monitor_name}'.")
+            job_parts = job_without_monitor.split()
+            cron_schedule = ' '.join(job_parts[:5])
+            command = ' '.join(job_parts[5:])
+            new_monitor_id = create_monitor(cronitor_api_key, cron_schedule, command, monitor_name)
+            if new_monitor_id:
+                update_crontab_with_monitor(job_without_monitor, new_monitor_id)
