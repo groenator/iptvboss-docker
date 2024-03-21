@@ -99,7 +99,7 @@ To connect to the VNC server using a VNC client, use the following address:
 
 To connect to the VNC server using a web browser, use the following address.
 
-`http://<your-machine-ip>:6901/password=vncpassword`.
+`http://<host-ip>:6901/?password=vncpassword`.
 
 If you deploy it outside of your locally replace IP with `localhost`.
 
