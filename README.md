@@ -1,6 +1,6 @@
 # IPTVBoss VNC Docker Image
 
-- This Docker image provides a VNC server with the IPTVBoss application.
+- This Docker image provides a VNC server with the IPTVBoss [BETA application](https://github.com/walrusone/iptvboss-release/releases/latest).
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 - Users can play videos with audio enabled by default.
 - It includes the option to configure Cronitor to monitor the local cron jobs. View the instructions below to enable Cronitor monitoring.
