@@ -49,7 +49,7 @@ Use Docker Compose to manage the Docker container. An example docker-compose.yml
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest # For ARM support use: docker pull ghcr.io/groenator/iptvboss-docker:latest-arm
+    image: ghcr.io/groenator/iptvboss-docker:latest # For ARM support use: ghcr.io/groenator/iptvboss-docker:latest-arm
     devices:
       - /dev/snd:/dev/snd # Required for audio support
     privileged: true # Required for audio support
@@ -130,7 +130,7 @@ To enable Cronitor monitoring, set the CRONITOR_API_KEY environment variable to 
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest #For ARM support use: docker pull ghcr.io/groenator/iptvboss-docker:latest-arm
+    image: ghcr.io/groenator/iptvboss-docker:latest #For ARM support use: ghcr.io/groenator/iptvboss-docker:latest-arm
     devices:
       - /dev/snd:/dev/snd # Required for audio support
     privileged: true # Required for audio support
