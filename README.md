@@ -24,6 +24,7 @@
 - Automatically configuring the cron job for updating the EPG.
 - Cronitor.io integration for monitoring the cron job(optional)
 - rclone support to sync IPTVBoss data to a cloud storage provider.
+- ARM support for Raspberry Pi and other ARM devices. Use the `ghcr.io/groenator/iptvboss-docker:latest-arm` image.
 
 ## Tasks list
 
@@ -48,7 +49,7 @@ Use Docker Compose to manage the Docker container. An example docker-compose.yml
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest
+    image: ghcr.io/groenator/iptvboss-docker:latest # For ARM support use: docker pull ghcr.io/groenator/iptvboss-docker:latest-arm
     devices:
       - /dev/snd:/dev/snd # Required for audio support
     privileged: true # Required for audio support
@@ -129,7 +130,7 @@ To enable Cronitor monitoring, set the CRONITOR_API_KEY environment variable to 
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest
+    image: ghcr.io/groenator/iptvboss-docker:latest #For ARM support use: docker pull ghcr.io/groenator/iptvboss-docker:latest-arm
     devices:
       - /dev/snd:/dev/snd # Required for audio support
     privileged: true # Required for audio support
