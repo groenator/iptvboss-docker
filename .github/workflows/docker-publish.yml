@@ -2,8 +2,6 @@ name: Docker
 
 # Define triggers
 on:
-  schedule:
-    - cron: '43 23 * * *'
   push:
     branches:
       - master
