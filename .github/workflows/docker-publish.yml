@@ -74,7 +74,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=ma
+          cache-to: type=gha,mode=max
 
       # Build and push Docker image for ARM
       - name: Build and push Docker image for ARM
@@ -106,7 +106,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR-${{ github.event.number }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=ma
+          cache-to: type=gha,mode=max
 
       # Build and push Docker image for ARM (for pull requests)
       - name: Build and push Docker image for ARM (PR)
@@ -138,7 +138,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=ma
+          cache-to: type=gha,mode=max
 
       # Build and push Docker image for ARM (for release or push to master)
       - name: Build and push Docker image for ARM (Release or Push to Master)
