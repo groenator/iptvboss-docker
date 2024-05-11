@@ -100,10 +100,10 @@ jobs:
         with:
           context: .
           build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+            LATEST_TAG=${{ env.LATEST_TAG }}
           push: true
           platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR-${{ github.event.number }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=ma
@@ -116,10 +116,10 @@ jobs:
         with:
           context: .
           build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+            LATEST_TAG=${{ env.LATEST_TAG }}
           push: true
           platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR-${{ github.event.number }}-arm
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
