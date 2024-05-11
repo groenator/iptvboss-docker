@@ -5,7 +5,7 @@ FROM  consol/debian-xfce-vnc:latest
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
-
+ARG LATEST_TAG
 # Switch to root temporarily to perform system updates
 USER 0
 
@@ -31,7 +31,6 @@ RUN pip3 install requests
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
-    && LATEST_TAG=$(wget -qO- https://api.github.com/repos/walrusone/iptvboss-release/releases/latest | jq -r .tag_name) \
     && wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb \
     && apt install ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
     cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
