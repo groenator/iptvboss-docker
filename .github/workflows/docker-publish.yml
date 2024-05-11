@@ -57,26 +57,32 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Get release tag from file
+        id: get_tag
+        run: echo ::set-output name=tag::$(cat release)
+
+      # Build and push Docker image for x86
       - name: Build and push Docker image for x86
         id: build-and-push-x86
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        uses: docker/build-push-action@v5.0.0
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.read-tag.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Build and push Docker image for ARM
       - name: Build and push Docker image for ARM
         id: build-and-push-arm
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        uses: docker/build-push-action@v5.0.0
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.read-tag.outputs.tag }}-arm
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
