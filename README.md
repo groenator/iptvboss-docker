@@ -1,8 +1,7 @@
 # IPTVBoss VNC Docker Image
 
-- This Docker image provides a VNC server with the IPTVBoss [BETA application](https://github.com/walrusone/iptvboss-release/releases/latest).
+- This Docker image provides a VNC server with the [IPTVBoss application](https://github.com/walrusone/iptvboss-release/releases/latest).
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
-- Users can play videos with audio enabled by default.
 - It includes the option to configure Cronitor to monitor the local cron jobs. View the instructions below to enable Cronitor monitoring.
 - rclone is also installed in the container to allow users to sync their IPTVBoss data to a cloud storage provider.
 
@@ -18,18 +17,17 @@
 - Debian-based VNC server.
 - IPTVBoss application pre-installed.
 - XC Server starting on boot only when setting the `XC_SERVER=true` variable, otherwise it won't start.
-- Audio is enabled by default. Users can play videos with audio from the browser.
-- Run the container as a non-root user with the desire PUID and PGID set up.
-- Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables.
+- Run the container as a non-root user with the desire `PUID` and `PGID` set up.
+- Pre-configured VNC server with a default password. User can change the VNC settings by overriding the environment variables, see below for more info.
 - Automatically configuring the cron job for updating the EPG.
 - Cronitor.io integration for monitoring the cron job(optional)
 - rclone support to sync IPTVBoss data to a cloud storage provider.
-- ARM support for Raspberry Pi and other ARM devices. Use the `ghcr.io/groenator/iptvboss-docker:latest-arm` image.
+- ARM support for Raspberry Pi and other ARM devices. Use the `ghcr.io/groenator/iptvboss-docker:latest` image.
 
 ## Tasks list
 
+- [ ] Create a Docker image with IPTVBoss running as a simple cli without GUI and VNC.
 - [x] Configure IPTVBoss XC to start on boot.
-- [x] Allow users to use audio within the container.
 - [x] Pushing the docker image to an actual docker registry.
 - [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
 - [x] Start the container defining your own user.
@@ -39,9 +37,10 @@
 
 **Note:**
 
-- *The volume is mounted to the `/headless/IPTVBoss` directory in the container.If the volume mounted doesn't have the correct permissions IPTVBoss will NOT start. Before mounting the volume make sure the permissions on the local folder are set correctly.*
-- *A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by setting the CRON_SCHEDULE environment variable with your own schedule.*
-- To use XC server you need to expose the port 8001. If you don't need it, you can remove the port from the docker-compose file. Access the XC server via your browser at `http://<your-machine-ip>:8001`.
+- *The volume is mounted to the `/headless/IPTVBoss` directory in the container.*
+- *If the volume mounted doesn't have the correct permissions IPTVBoss will NOT start. Before mounting the volume make sure the permissions on the local folder are set correctly.*
+- *A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by setting the `CRON_SCHEDULE` environment variable with your own schedule.*
+- *To use XC server expose port 8001 and set `XC_SERVER=true` variable. If you don't need it, remove the port and variable. Access the XC server via your browser at `http://<your-machine-ip>:8001`.*
 
 Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
 
@@ -49,12 +48,7 @@ Use Docker Compose to manage the Docker container. An example docker-compose.yml
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest # For ARM support use: ghcr.io/groenator/iptvboss-docker:latest-arm
-    devices:
-      - /dev/snd:/dev/snd # Required for audio support
-    privileged: true # Required for audio support
-    group_add:
-      - audio # Required for audio support
+    image: ghcr.io/groenator/iptvboss-docker:latest # The Image has support for both ARM and x86 devices.
     environment:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
@@ -62,12 +56,13 @@ services:
       CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
-      - 8001:8001
-      - 5901:5901
-      - 6901:6901
+      - 8001:8001 # Used by XC Server
+      - 5901:5901 # Used by the VNC Server to connect to the container using the VNC client.
+      - 6901:6901 # Used by the VNC Server to connect to the container using a web browser.
     volumes:
-    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss. Based on the PUID and PGID environment variables the folder permissions are set on runtime.
-      - <local_volume>:/headless/IPTVBoss
+    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss.
+    # Based on the PUID and PGID environment variables the folder permissions are set at runtime.
+    - <local_volume>:/headless/IPTVBoss
 ```
 
 Adjust the configuration as needed and run:
@@ -80,7 +75,14 @@ docker-compose up -d
 
 The user can define their own PUID and PGID to run the container as a non-root user. This is useful for security reasons. The user can also set the user and group ID of the host system to run the container as the same user and group of the host system.
 
-`docker run -it -p 6911:6901 -p 8001:8001 -e PUID=1001 -e PGID=1001 --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss -e CRON_SCHEDULE="* * * * *" -e TZ=US/Eastern -e XC_SERVER=true ghcr.io/groenator/iptvboss-docker:latest`
+```bash
+docker run -it -p 6911:6901 -p 8001:8001
+-v <your-local-volume>:/headless/IPTVBoss
+-e PUID=1000 -e PGID=1000
+-e CRON_SCHEDULE="* * * * *"
+-e TZ=US/Eastern -e XC_SERVER=true
+ghcr.io/groenator/iptvboss-docker:latest
+```
 
 Alternatively, you can also set the user and group id using the PUID and PGID environment variables in the docker-compose file as showing above.
 
@@ -124,34 +126,31 @@ Prerequisites:
 - A Cronitor account. Sign up at [Cronitor.io](https://cronitor.io).
 - A Cronitor API key.
 
-To enable Cronitor monitoring, set the CRONITOR_API_KEY environment variable to your Cronitor API key. Set the CRONITOR_SCHEDULE_NAME environment variable to a custom name for your Cronitor job. Run it using docker-compose:
+To enable Cronitor monitoring, set the `CRONITOR_API_KEY` environment variable to your Cronitor API key. Set the `CRONITOR_SCHEDULE_NAME` environment variable to a custom name for your Cronitor job.
+
+Run it using docker-compose:
 
 ```yaml
 version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest #For ARM support use: ghcr.io/groenator/iptvboss-docker:latest-arm
-    devices:
-      - /dev/snd:/dev/snd # Required for audio support
-    privileged: true # Required for audio support
-    group_add:
-      - audio # Required for audio support
+    image: ghcr.io/groenator/iptvboss-docker:latest # The Image has support for both ARM and x86 devices.
     environment:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
-      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
+      CRON_SCHEDULE: "0 0 * * *" # Set the cron schedule for the cron job that will update the EPG data.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
       TZ: "US/Eastern" #Set the timezone for the container.
     ports:
-      - 8001:8001
-      - 5901:5901
-      - 6901:6901
+    - 8001:8001 # Used by XC Server
+    - 5901:5901 # Used by the VNC Server to connect to the container using the VNC client.
+    - 6901:6901 # Used by the VNC Server to connect to the container using a web browser.
     volumes:
     # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss.
-    # Make sure the local folder has the correct permissions, otherwise IPTVBoss will not start.
-      - <local_volume>:/headless/IPTVBoss
+    # Based on the PUID and PGID environment variables the folder permissions are set at runtime.
+    - <local_volume>:/headless/IPTVBoss
 ```
 
 Run the following command to start the container:
@@ -164,5 +163,13 @@ Or using the following command:
 
 ```bash
 # Remove the double quotes around CRONITOR_API_KEY value and replace <your_cronitor_api_key> with your actual Cronitor API key.
-docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 --name iptvboss  -e PUID=1000 -e PGID=1000 -e CRONITOR_API_KEY="<your_cronitor_api_key>" -e CRONITOR_SCHEDULE_NAME=MyJob -e CRON_SCHEDULE="* * * * *" -e XC_SERVER=true --privileged --device /dev/snd --group-add $(getent group audio | cut -d: -f3) -v <your-local-volume>:/headless/IPTVBoss iptvboss
+docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001
+--name iptvboss
+-e PUID=1000 -e PGID=1000
+-e CRONITOR_API_KEY="<your_cronitor_api_key>"
+-e CRONITOR_SCHEDULE_NAME=MyJob
+-e CRON_SCHEDULE="* * * * *"
+-e XC_SERVER=true
+-v <your-local-volume>:/headless/IPTVBoss
+ghcr.io/groenator/iptvboss-docker:latest
 ```
