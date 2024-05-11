@@ -6,7 +6,7 @@ FROM  consol/debian-xfce-vnc:latest
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
 ARG LATEST_TAG
-# Switch to root temporarily to perform system updates
+
 USER 0
 
 # Set the working directory
