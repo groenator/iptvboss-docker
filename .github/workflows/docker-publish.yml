@@ -60,7 +60,7 @@ jobs:
       - name: Set release tag as environment variable
         run: |
           export LATEST_TAG=$(cat release)
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "LATEST_TAG=$LATEST_TAG"
 
       # Build and push Docker image for x86
       - name: Build and push Docker image for x86
