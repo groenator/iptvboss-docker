@@ -1,17 +1,26 @@
 name: Docker
 
 on:
+  release:
+    types:
+      - published
   push:
     branches:
       - master
-      - '*'
-    # Publish semver tags as releases.
-    tags:
-      - 'v*.*.*'
+    paths:
+      - Dockerfile
+      - cronitor.py
+      - entrypoint.sh
+      - release
   pull_request:
-    branches:
-      - master
-      - '*'
+    types:
+      - opened
+      - synchronize
+    paths:
+      - Dockerfile
+      - cronitor.py
+      - entrypoint.sh
+      - release
 
 # Define environment variables
 env:
@@ -19,7 +28,32 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "^1.22"
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: go
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+
   build-and-publish:
+    if: |
+      github.repository == '${{ github.repository }}' &&
+      (
+        github.event_name == 'push' ||
+        github.event_name == 'release' ||
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+      )
+    needs: [codeql]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,13 +63,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      # Install the cosign tool except on PR
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 #v3.4.0
-        with:
-          cosign-release: 'v2.2.3'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
@@ -48,49 +75,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          flavor: |
+            latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+          images: |
+            ghcr.io/groenator/iptvboss-docker
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+
       - name: Set release tag as environment variable
         id: set-tag
         run: |
           echo "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
           echo $LATEST_TAG
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      # # Build and push Docker image for x86
-      # - name: Build and push Docker image for x86
-      #   id: build-and-push-x86
-      #   if: ${{ github.event_name != 'pull_request' }}
-      #   uses: docker/build-push-action@v5.0.0
-      #   with:
-      #     context: .
-      #     build-args: |
-      #       LATEST_TAG=${{ env.LATEST_TAG }}
-      #     push: false
-      #     platforms: linux/amd64
-      #     tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-
-      # # Build and push Docker image for ARM
-      # - name: Build and push Docker image for ARM
-      #   id: build-and-push-arm
-      #   if: ${{ github.event_name != 'pull_request' }}
-      #   uses: docker/build-push-action@v5.0.0
-      #   with:
-      #     context: .
-      #     build-args: |
-      #       LATEST_TAG=${{ env.LATEST_TAG }}
-      #     push: false
-      #     platforms: linux/arm64
-      #     tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-arm
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
 
       # Build and push Docker image for x86 (for pull requests)
       - name: Build and push Docker image for x86 (PR)
@@ -108,64 +112,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build and push Docker image for ARM (for pull requests)
-      - name: Build and push Docker image for ARM (PR)
-        id: build-and-push-arm-pr
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: docker/build-push-action@v5.0.0
+      - name: Short commit
+        id: shortcommit
+        run: echo "::set-output name=value::$(git rev-parse --short HEAD)"
+
+      - name: Build and push final image
+        uses: docker/build-push-action@v5
         with:
-          context: .
+          platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v6,linux/arm/v7,linux/ppc64le
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             LATEST_TAG=${{ env.LATEST_TAG }}
+          tags: ${{ steps.meta.outputs.tags }}
           push: true
-          platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR-${{ github.event.number }}-arm
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Build and push Docker image for x86 (for release or push to master)
-      - name: Build and push Docker image for x86 (Release or Push to Master)
-        id: build-and-push-latest-x86
-        if: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
-        uses: docker/build-push-action@v5.0.0
-        with:
-          context: .
-          build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}
-          push: false
-          platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Build and push Docker image for ARM (for release or push to master)
-      - name: Build and push Docker image for ARM (Release or Push to Master)
-        id: build-and-push-latest-arm
-        if: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
-        uses: docker/build-push-action@v5.0.0
-        with:
-          context: .
-          build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}
-          push: false
-          platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Sign the published Docker image for x86
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          DIGEST: ${{ steps.build-and-push-x86.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-
-      - name: Sign the published Docker image for ARM
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm
-          DIGEST: ${{ steps.build-and-push-arm.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
