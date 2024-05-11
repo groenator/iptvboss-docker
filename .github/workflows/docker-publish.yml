@@ -60,6 +60,7 @@ jobs:
       - name: Set release tag as environment variable
         run: |
           export LATEST_TAG=$(cat release)
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       # Build and push Docker image for x86
       - name: Build and push Docker image for x86
@@ -69,7 +70,7 @@ jobs:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-x86
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=ma
