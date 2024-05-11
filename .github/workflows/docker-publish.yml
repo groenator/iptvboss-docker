@@ -96,21 +96,6 @@ jobs:
           echo $LATEST_TAG
 
       # Build and push Docker image for x86 (for pull requests)
-      - name: Build and push Docker image for x86 (PR)
-        id: build-and-push-x86-pr
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: docker/build-push-action@v5.0.0
-        with:
-          context: .
-          build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}
-          push: true
-          platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR-${{ github.event.number }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Short commit
         id: shortcommit
         run: echo "::set-output name=value::$(git rev-parse --short HEAD)"
@@ -118,7 +103,7 @@ jobs:
       - name: Build and push final image
         uses: docker/build-push-action@v5
         with:
-          platforms: linux/amd64,linux/386,linux/arm64,linux/arm/v6,linux/arm/v7,linux/ppc64le
+          platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             LATEST_TAG=${{ env.LATEST_TAG }}
