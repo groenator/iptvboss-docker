@@ -1,6 +1,5 @@
 name: Docker
 
-# Define triggers
 on:
   push:
     branches:
@@ -20,7 +19,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  build-and-publish:
 
     runs-on: ubuntu-latest
     permissions:
@@ -33,7 +32,6 @@ jobs:
         uses: actions/checkout@v3
 
       # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 #v3.4.0
@@ -65,12 +63,13 @@ jobs:
       # Build and push Docker image for x86
       - name: Build and push Docker image for x86
         id: build-and-push-x86
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/build-push-action@v5.0.0
         with:
           context: .
           build-args: |
             LATEST_TAG=${{ env.LATEST_TAG }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           platforms: linux/amd64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -80,14 +79,79 @@ jobs:
       # Build and push Docker image for ARM
       - name: Build and push Docker image for ARM
         id: build-and-push-arm
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/build-push-action@v5.0.0
         with:
           context: .
           build-args: |
             LATEST_TAG=${{ env.LATEST_TAG }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           platforms: linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-arm
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Docker image for x86 (for pull requests)
+      - name: Build and push Docker image for x86 (PR)
+        id: build-and-push-x86-pr
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=ma
+
+      # Build and push Docker image for ARM (for pull requests)
+      - name: Build and push Docker image for ARM (PR)
+        id: build-and-push-arm-pr
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          push: true
+          platforms: linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-PR${{ github.event.number }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Docker image for x86 (for release or push to master)
+      - name: Build and push Docker image for x86 (Release or Push to Master)
+        id: build-and-push-latest-x86
+        if: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=ma
+
+      # Build and push Docker image for ARM (for release or push to master)
+      - name: Build and push Docker image for ARM (Release or Push to Master)
+        id: build-and-push-latest-arm
+        if: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}
+          push: true
+          platforms: linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
