@@ -12,6 +12,7 @@ on:
       - cronitor.py
       - entrypoint.sh
       - release
+      - .github/workflows/docker-publish.yml
   pull_request:
     types:
       - opened
@@ -21,6 +22,7 @@ on:
       - cronitor.py
       - entrypoint.sh
       - release
+      - .github/workflows/docker-publish.yml
 
 # Define environment variables
 env:
