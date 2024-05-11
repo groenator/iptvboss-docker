@@ -20,7 +20,6 @@ env:
 
 jobs:
   build-and-publish:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,16 +48,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set release tag as environment variable
+        id: set-tag
+        run: |
+          echo "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+          echo $LATEST_TAG
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Set release tag as environment variable
-        run: |
-          export LATEST_TAG=$(cat release)
-          echo "LATEST_TAG=$LATEST_TAG"
 
       # Build and push Docker image for x86
       - name: Build and push Docker image for x86
