@@ -68,9 +68,11 @@ jobs:
         uses: docker/build-push-action@v5.0.0
         with:
           context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-x86
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=ma
@@ -81,6 +83,8 @@ jobs:
         uses: docker/build-push-action@v5.0.0
         with:
           context: .
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}-arm
