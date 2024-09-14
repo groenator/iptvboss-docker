@@ -15,22 +15,22 @@ WORKDIR /headless
 RUN apt-get update -y && apt-get upgrade -y
 
 # Install necessary dependencies
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev vlc alsa-oss alsa-utils libsndfile1-dev \
     python3 python3-pip python3-requests jq rclone gosu \
-    libgtk2.0-0 libavcodec-extra* &&  \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    libgtk2.0-0 libavcodec-extra* libgdk-pixbuf2.0-0 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
 COPY cronitor.py /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
-RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
-    && wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb \
-    && apt install ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
+RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
+    wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
+    apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
     cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
     chmod 777 /headless/Desktop/iptvboss-release.desktop
+
 
 # Create a new user with home directory set to /headless
 RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
