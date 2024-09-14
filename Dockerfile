@@ -1,6 +1,5 @@
-
 # Use the official Debian base image
-FROM  consol/debian-xfce-vnc:latest
+FROM  consol/debian-xfce-vnc:v2.0.4
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
@@ -18,16 +17,13 @@ RUN apt-get update -y && apt-get upgrade -y
 # Install necessary dependencies
 RUN apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev vlc alsa-oss alsa-utils libsndfile1-dev \
-    python3 python3-pip jq rclone gosu \
+    python3 python3-pip python3-requests jq rclone gosu \
     libgtk2.0-0 libavcodec-extra* &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
 COPY cronitor.py /headless/scripts/
-
-# Install Python dependencies
-RUN pip3 install requests
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) \
