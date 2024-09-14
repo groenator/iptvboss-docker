@@ -1,6 +1,6 @@
 
 # Use the official Debian base image
-FROM  consol/debian-xfce-vnc:latest
+FROM  consol/debian-xfce-vnc:v2.0.4
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
