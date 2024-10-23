@@ -1,10 +1,11 @@
 # IPTVBoss VNC Docker Image
 
+## DO NOT RUN the container using ROOT user. Define your own user and set the correct permissions for your volumes using your user UID/GID details. 
+
 - This Docker image provides a VNC server with the [IPTVBoss application](https://github.com/walrusone/iptvboss-release/releases/latest).
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 - It includes the option to configure Cronitor to monitor the local cron jobs. View the instructions below to enable Cronitor monitoring.
 - rclone is also installed in the container to allow users to sync their IPTVBoss data to a cloud storage provider.
-- DO NOT RUN the container using ROOT user. Define your own user and set the correct permissions for your volumes using your user UID/GID. 
 
 ## Prerequisites
 
