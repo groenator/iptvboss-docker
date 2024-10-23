@@ -1,6 +1,6 @@
 # IPTVBoss VNC Docker Image
 
-## DO NOT RUN the container using ROOT user. Define your own user and set the correct permissions for your volumes using your user UID/GID details. 
+## DO NOT RUN the container using ROOT user, it won't work. Define your own user and set the correct permissions for your volumes using your user UID/GID details. 
 
 - This Docker image provides a VNC server with the [IPTVBoss application](https://github.com/walrusone/iptvboss-release/releases/latest).
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
