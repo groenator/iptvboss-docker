@@ -151,7 +151,7 @@ jobs:
           flavor: |
             latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
           images: |
-            ghcr.io/groenator/iptvboss-beta-docker
+            ghcr.io/groenator/iptvboss-docker-beta
           tags: |
             type=ref,event=pr
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
@@ -177,6 +177,6 @@ jobs:
           build-args: |
             BETA_TAG=${{ env.BETA_TAG }}
           tags: |
-            ghcr.io/groenator/iptvboss-beta-docker:beta-${{ env.BETA_TAG }}
+            ghcr.io/groenator/iptvboss-docker-beta:beta-${{ env.BETA_TAG }}
           push: true
           context: .
