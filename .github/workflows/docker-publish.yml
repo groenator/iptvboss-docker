@@ -1,5 +1,4 @@
 name: Docker
-
 on:
   release:
     types:
@@ -13,6 +12,7 @@ on:
       - cronitor.py
       - entrypoint.sh
       - release
+      - beta-release
       - .github/workflows/docker-publish.yml
   pull_request:
     types:
@@ -23,6 +23,7 @@ on:
       - cronitor.py
       - entrypoint.sh
       - release
+      - beta-release
       - .github/workflows/docker-publish.yml
 
 # Define environment variables
@@ -96,13 +97,15 @@ jobs:
         id: set-tag
         run: |
           echo "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+          echo "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
           echo $LATEST_TAG
+          echo $BETA_TAG
 
       # Build and push Docker image
       - name: Short commit
         id: shortcommit
         run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        
+
       - name: Build and push final image
         uses: docker/build-push-action@v5
         with:
@@ -110,5 +113,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             LATEST_TAG=${{ env.LATEST_TAG }}
+            BETA_TAG=${{ env.BETA_TAG }}
           tags: ${{ steps.meta.outputs.tags }}
           push: true
+          context: .
+          dockerfile: Dockerfile
