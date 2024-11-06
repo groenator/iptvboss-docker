@@ -114,7 +114,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           push: true
           context: .
-          dockerfile: Dockerfile
 
   build-beta:
     if: |
@@ -181,4 +180,3 @@ jobs:
             ghcr.io/groenator/iptvboss-beta-docker:beta-${{ env.BETA_TAG }}
           push: true
           context: .
-          dockerfile: Dockerfile 
