@@ -15,8 +15,6 @@ on:
       - release
       - beta-release
       - .github/workflows/docker-publish.yml
-    paths-ignore:
-      - 'README.md'
   pull_request:
     types:
       - opened
@@ -28,8 +26,6 @@ on:
       - release
       - beta-release
       - .github/workflows/docker-publish.yml
-    paths-ignore:
-      - 'README.md'
 
 # Define environment variables
 env:
