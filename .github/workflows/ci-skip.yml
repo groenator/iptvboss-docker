@@ -1,0 +1,20 @@
+name: No trigger file paths
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - .gitignore
+      - .github/workflows/*.yml
+  pull_request:
+    paths-ignore:
+      - .gitignore
+      - .github/workflows/*.yml
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: No trigger path triggered for required verify workflow.
+        run: exit 0

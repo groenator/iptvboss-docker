@@ -1,0 +1,23 @@
+name: Opened issue
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  comment:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ github.token }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            @groenator is more or less the only maintainer of this project and works on it in his free time.
+            Please:
+            - I am only supporting the docker image build. Any issues with the actual BOSS application please raise it with the developer on Discord.
+            - **Do not** ask for updates, be patient
+            - Read carefully the documentation before raising a new issue. Some issues are already addressed there.
+            - If you have other questions, ask on Discord
+            @groenator usually checks issues at least once a week, if this is a new urgent bug, [revert to an older tagged container image]

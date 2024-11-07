@@ -5,6 +5,7 @@ FROM  consol/debian-xfce-vnc:v2.0.4
 ENV LC_ALL=C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
 ARG LATEST_TAG
+ARG BETA_TAG
 
 USER 0
 
@@ -26,11 +27,20 @@ COPY cronitor.py /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
-    wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-    apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-    cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
-    chmod 777 /headless/Desktop/iptvboss-release.desktop
-
+    # Build the latest release
+    if [ -n "$LATEST_TAG" ]; then \
+        wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
+        apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
+        cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
+        chmod 777 /headless/Desktop/iptvboss-release.desktop; \
+    fi && \
+    # Build the beta version
+    if [ -n "$BETA_TAG" ]; then \
+        wget https://github.com/walrusone/iptvboss-beta/releases/latest/download/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+        apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+        cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-beta.desktop && \
+        chmod 777 /headless/Desktop/iptvboss-beta.desktop; \
+    fi
 
 # Create a new user with home directory set to /headless
 RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss

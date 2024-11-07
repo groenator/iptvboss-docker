@@ -1,0 +1,19 @@
+name: Markdown
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  markdown:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: No trigger path triggered for required markdown workflow.
+        run: exit 0
