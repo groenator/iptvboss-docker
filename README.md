@@ -4,7 +4,7 @@
 1. Running the container using root and not using a non-root user
   - DO NOT RUN the container using ROOT user, it won't work.
 2. The container volumes are not mounted correctly, the volume permissions are incorrect
-  - Define your own user and set the correct permissions for your volume using your user UID/GID details. 
+  - Define your own user and set the correct permissions for your volume using your user UID/GID details.
 -----------------------------------------------------------------------------------------------------------------------------------------
 - This Docker image provides a VNC server with the [IPTVBoss application](https://github.com/walrusone/iptvboss-release/releases/latest).
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
@@ -51,7 +51,6 @@
 Use Docker Compose to manage the Docker container. An example docker-compose.yml file is provided:
 
 ```yaml
-version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest # The Image has support for both ARM and x86 devices.
@@ -98,6 +97,33 @@ Then, run the bellow command:
 docker-compose up -d
 ```
 
+## Beta Version Available!
+
+**Please note that this is a beta release and may contain bugs.**
+
+A beta version of the IPTVBoss Docker image is available for testing.
+
+It is highly recommended to back up your IPTVBoss data before using the beta version.
+
+To use the beta version, replace the image field from your docker-compose with the `iptvboss-docker-beta` package with the `<version>` tag:
+
+```bash
+services:
+  iptvboss:
+    image: ghcr.io/groenator/iptvboss-docker-beta:<version>  # Use the beta image with tag
+    # ... (rest of your docker-compose configuration)
+```
+Example deploying the beta version using docker cli:
+
+```bash
+docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 \
+    --name iptvboss \
+    -e PUID=1000 -e PGID=1000 \
+    # ... (other environment variables) \
+    -v <your-local-volume>:/headless/IPTVBoss \
+    ghcr.io/groenator/iptvboss-docker-beta:<version>  # Use the beta image with tag
+```
+
 ## Accessing the VNC Server
 
 Connect to the VNC server using your preferred VNC client or any browser by opening below URL.
@@ -137,7 +163,6 @@ To enable Cronitor monitoring, set the `CRONITOR_API_KEY` environment variable t
 Run it using docker-compose:
 
 ```yaml
-version: "2.1"
 services:
   iptvboss:
     image: ghcr.io/groenator/iptvboss-docker:latest # The Image has support for both ARM and x86 devices.
