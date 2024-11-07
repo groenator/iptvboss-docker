@@ -5,11 +5,11 @@ on:
       - master
     paths-ignore:
       - "**.md"
-      - .github/workflows/markdown.yml
+      - .github/workflows/*.yml
   pull_request:
     paths-ignore:
       - "**.md"
-      - .github/workflows/markdown.yml
+      - .github/workflows/*.yml
 
 jobs:
   markdown:
