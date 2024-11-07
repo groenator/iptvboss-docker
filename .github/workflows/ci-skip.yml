@@ -4,11 +4,9 @@ on:
     branches:
       - master
     paths-ignore:
-      - .github/workflows/ci-skip.yml
       - .gitignore
   pull_request:
     paths-ignore:
-      - .github/workflows/ci-skip.yml
       - .gitignore
 
 jobs:
