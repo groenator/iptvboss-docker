@@ -110,7 +110,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            LATEST_TAG=${{ steps.set-tag.outputs.LATEST_TAG }}
+            LATEST_TAG=${{ env.LATEST_TAG }}
           tags: ${{ steps.meta.outputs.tags }}
           push: true
           context: .
@@ -177,9 +177,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BETA_TAG=${{ steps.set-tag.outputs.BETA_TAG }}
+            BETA_TAG=${{ env.BETA_TAG }}
           tags: |
-            ghcr.io/groenator/iptvboss-docker-beta:${{ steps.set-tag.outputs.BETA_TAG }}
+            ghcr.io/groenator/iptvboss-docker-beta:${{ env.BETA_TAG }}
           push: true
           context: .
       - name: Clean Buildx Cache
