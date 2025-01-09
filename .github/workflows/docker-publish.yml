@@ -180,8 +180,7 @@ jobs:
           labels: ${{ steps.meta-beta.outputs.labels }}
           build-args: |
             BETA_TAG=${{ env.BETA_TAG }}
-          tags: |
-            tags: ${{ steps.meta-beta.outputs.tags }}
+          tags: ${{ steps.meta-beta.outputs.tags }}
           push: true
           context: .
       - name: Clean Buildx Cache
