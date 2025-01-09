@@ -181,7 +181,6 @@ jobs:
           build-args: |
             BETA_TAG=${{ env.BETA_TAG }}
           tags: |
-            # ghcr.io/groenator/iptvboss-docker-beta:${{ env.BETA_TAG }}
             tags: ${{ steps.meta-beta.outputs.tags }}
           push: true
           context: .
