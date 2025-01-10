@@ -2,7 +2,7 @@ name: Update Docker Release
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Runs every hour to check for updates
+    - cron: '*/10 * * * *' # Runs every 10 minutes to check for updates
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
