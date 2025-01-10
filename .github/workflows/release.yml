@@ -1,4 +1,4 @@
-name: Update Docker Release
+name: Publish IPTVBoss Release
 
 on:
   schedule:
