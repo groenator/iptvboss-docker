@@ -1,0 +1,93 @@
+name: Update Docker Release
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Runs every hour to check for updates
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  update-beta-release:
+    name: Update Beta Release
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check the latest release from walrusone/iptvboss-beta
+      - name: Fetch latest release
+        id: fetch_latest
+        run: |
+          API_URL="https://api.github.com/repos/walrusone/iptvboss-beta/releases/latest"
+          RELEASE_INFO=$(curl -s $API_URL)
+          echo "Release Info: $RELEASE_INFO"
+          VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+          if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
+            echo "Error: Could not fetch version from latest release."
+            exit 1
+          fi
+          echo "Latest version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_ENV
+
+      # Step 2: Clone your repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 3: Update the beta-release file
+      - name: Update beta-release file
+        run: |
+          echo "${{ env.version }}" > beta-release
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add beta-release
+          git commit -m "feat(beta): publishing beta-release (version ${{ env.version }})" || echo "No changes to commit."
+
+      # Step 4: Create a Pull Request
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "feat(beta): publishing beta-release (version ${{ env.version }})"
+          branch: update-beta-release-${{ env.version }}
+          title: "feat(beta): publishing beta-release (version ${{ env.version }})"
+          body: |
+            This PR updates the beta-release file to version `${{ env.version }}`.
+
+  update-stable-release:
+      name: Update Stable Release
+      runs-on: ubuntu-latest
+      steps:
+        # Step 1: Check the latest release from walrusone/iptvboss-release
+        - name: Fetch latest release
+          id: fetch_latest
+          run: |
+            API_URL="https://api.github.com/repos/walrusone/iptvboss-release/releases/latest"
+            RELEASE_INFO=$(curl -s $API_URL)
+            echo "Release Info: $RELEASE_INFO"
+            VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+            if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
+              echo "Error: Could not fetch version from latest release."
+              exit 1
+            fi
+            echo "Latest version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_ENV
+
+        # Step 2: Clone your repository
+        - name: Checkout repository
+          uses: actions/checkout@v3
+
+        # Step 3: Update the stable-release file
+        - name: Update stable-release file
+          run: |
+            echo "${{ env.version }}" > release
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            git add release
+            git commit -m "feat(stable): publishing stable-release (version ${{ env.version }})" || echo "No changes to commit."
+
+        # Step 4: Create a Pull Request
+        - name: Create Pull Request
+          uses: peter-evans/create-pull-request@v5
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            commit-message: "feat(stable): publishing stable-release (version ${{ env.version }})"
+            branch: update-stable-release-${{ env.version }}
+            title: "feat(stable): publishing stable-release (version ${{ env.version }})"
+            body: |
+              This PR updates the stable-release file to version `${{ env.version }}`.
