@@ -16,6 +16,7 @@ jobs:
         run: |
           API_URL="https://api.github.com/repos/walrusone/iptvboss-beta/releases/latest"
           RELEASE_INFO=$(curl -s $API_URL)
+          sleep 20s
           echo "Release Info: $RELEASE_INFO"
           VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
           if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
