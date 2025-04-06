@@ -12,6 +12,9 @@ USER 0
 
 WORKDIR /headless
 
+# Update package list and upgrade installed packages
+RUN apt-get update -y && apt-get upgrade -y
+
 # Install dependencies needed to install iptvboss
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev libsndfile1-dev \
@@ -24,8 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY cronitor.py /headless/scripts/
 
 # Install IPTVBoss
-RUN wget https://github.com/walrusone/iptvboss-beta/releases/latest/download/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
+    wget https://github.com/walrusone/iptvboss-beta/releases/latest/download/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+    apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
     rm -f iptvboss_${BETA_TAG#v}_${CPU}.deb
 
 # Create iptvboss user
