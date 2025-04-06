@@ -1,65 +1,53 @@
-# Use the official Debian base image
-FROM  ubuntu:22.04
+FROM debian:bookworm as builder
 
-# Set locale to avoid warnings
-ENV LC_ALL C.UTF-8
-ENV XC_SERVER true
-ENV DEBIAN_FRONTEND noninteractive
-ARG LATEST_TAG
-ARG BETA_TAG
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /build
 
-USER 0
-
-# Set the working directory
-WORKDIR /headless
-
-# Update package list and upgrade installed packages
-RUN apt-get update -y && apt-get upgrade -y
-
-# Install necessary dependencies
+# Install dependencies needed to install iptvboss and extract what we want
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget cron curl sudo dpkg-dev vlc alsa-oss alsa-utils libsndfile1-dev \
-    python3 python3-pip python3-requests apt-utils jq rclone gosu \
-    libgtk2.0-0 libavcodec-extra* libgdk-pixbuf2.0-0 libgtk-3-0 libxtst6 && \
+    wget curl gnupg dpkg-dev ca-certificates sudo \
+    python3 python3-pip python3-requests \
+    libgtk2.0-0 libavcodec-extra libgdk-pixbuf2.0-0 libgtk-3-0 libxtst6 \
+    alsa-oss alsa-utils libsndfile1 jq rclone gosu && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy the Python script into the container
-COPY cronitor.py /headless/scripts/
-
+# Install IPTVBoss manually
 RUN wget https://github.com/walrusone/iptvboss-beta/releases/download/3.9.6/iptvboss_3.9.6_amd64.deb && \
     apt install -y ./iptvboss_3.9.6_amd64.deb && \
-    rm -rf /headless/iptvboss_3.9.6_amd64.deb
-    
-# RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
-#     # Build the latest release
-#     if [ -n "$LATEST_TAG" ]; then \
-#         wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-#         apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-#         cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
-#         chmod 777 /headless/Desktop/iptvboss-release.desktop; \
-#     fi && \
-#     # Build the beta version
-#     if [ -n "$BETA_TAG" ]; then \
-#         wget https://github.com/walrusone/iptvboss-beta/releases/latest/download/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-#         apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-#         cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-beta.desktop && \
-#         chmod 777 /headless/Desktop/iptvboss-beta.desktop ; \
-#     fi
+    rm -f iptvboss_3.9.6_amd64.deb
 
-# Create a new user with home directory set to /headless
+# -------- STAGE 2: Final runtime image --------
+FROM debian:bookworm-slim
+
+ENV LC_ALL=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+ENV XC_SERVER=true
+
+WORKDIR /headless
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cron curl sudo python3 python3-pip jq rclone \
+    libgtk2.0-0 libavcodec-extra libgdk-pixbuf2.0-0 libgtk-3-0 libxtst6 \
+    alsa-oss alsa-utils libsndfile1 libglib2.0-bin && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create iptvboss user
 RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
 
-# Copy the cron file to the cron.d directory
+# Copy the needed files from the builder stage
+COPY --from=builder /usr/lib/iptvboss /usr/lib/iptvboss
+COPY --from=builder /usr/bin/iptvboss /usr/bin/iptvboss
+COPY --from=builder /usr/bin/gosu /usr/local/bin/gosu
+
+# Copy custom scripts
+COPY cronitor.py /headless/scripts/
+COPY xcserver.sh /headless/xcserver.sh
 COPY iptvboss-cron /headless/iptvboss-cron
 
-# Expose XC Server port
+RUN chmod +x /headless/xcserver.sh && chmod +x /usr/local/bin/gosu
+
+# Expose the XC server port
 EXPOSE 8001
 
-# Copy the xcserver.sh script into the container and make it executable
-COPY xcserver.sh /headless/xcserver.sh
-
-# Run the xcserver.sh script
-RUN chmod +x /headless/xcserver.sh
-
-# Set the xcserver.sh script to be executed when the container starts
 ENTRYPOINT ["/headless/xcserver.sh"]
