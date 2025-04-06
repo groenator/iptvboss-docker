@@ -66,16 +66,8 @@ if [ -n "$CRONITOR_API_KEY" ]; then
     }
     configure_cronitor
 fi
-
-# # Start XCServer on Boot
-# if [ "$XC_SERVER" = "true" ]; then
-#     echo "Starting XCServer..."
-#     /usr/bin/iptvboss -xcserver &
-#     echo "XCServer started successfully..."
-# else
-#     echo "XC_SERVER is not set to true. XCServer will not be started."
-# fi
-echo "Debug: Attempting to start /usr/bin/iptvboss -xcserver..."
+# Start the iptvboss service
+echo "Starting iptvboss XC server"
 /usr/bin/iptvboss -xcserver
 if [ $? -eq 0 ]; then
     echo "Debug: /usr/bin/iptvboss -xcserver started successfully."
