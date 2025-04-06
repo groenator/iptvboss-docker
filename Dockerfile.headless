@@ -2,7 +2,9 @@ FROM ubuntu:20.04
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the environment variables for the build
 ARG LATEST_TAG
 ARG BETA_TAG
 
@@ -12,7 +14,7 @@ WORKDIR /headless
 
 # Install dependencies needed to install iptvboss and extract what we want
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget dpkg-dev libsndfile1-dev \
+    wget cron curl sudo dpkg-dev libsndfile1-dev \
     python3 python3-pip python3-requests gosu \
     libgtk2.0-0 libgtk-3-0 libgl1 libasound2 libxtst6  \
     libavformat* libavcodec-extra* libgdk-pixbuf2.0-0 && \
