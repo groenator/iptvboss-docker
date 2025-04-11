@@ -1,0 +1,50 @@
+FROM ubuntu:20.04
+
+# Set locale to avoid warnings
+ENV LC_ALL=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the environment variables for the build
+ARG LATEST_TAG
+ARG BETA_TAG
+
+USER 0
+
+WORKDIR /headless
+
+# Update package list and upgrade installed packages
+RUN apt-get update -y && apt-get upgrade -y
+
+# Install dependencies needed to install iptvboss
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget cron curl sudo dpkg-dev libsndfile1-dev \
+    python3 python3-pip python3-requests gosu \
+    libgtk2.0-0 libgtk-3-0 libgl1 libasound2 libxtst6  \
+    libavformat* libavcodec-extra* libgdk-pixbuf2.0-0 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy the Python script into the container
+COPY cronitor.py /headless/scripts/
+
+# Install IPTVBoss
+RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
+    wget https://github.com/walrusone/iptvboss-beta/releases/latest/download/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+    apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+    rm -f iptvboss_${BETA_TAG#v}_${CPU}.deb
+
+# Create iptvboss user
+RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
+
+# Copy the cron file to the cron.d directory
+COPY iptvboss-cron /headless/iptvboss-cron
+
+# Copy the xcserver file
+COPY xcserver.sh /headless/xcserver.sh
+
+# Make the script executable
+RUN chmod +x /headless/xcserver.sh
+
+# Expose the XC server port
+EXPOSE 8001
+
+ENTRYPOINT ["/headless/xcserver.sh"]
