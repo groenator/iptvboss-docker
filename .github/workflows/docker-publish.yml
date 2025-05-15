@@ -107,7 +107,6 @@ jobs:
       - name: Short commit
         id: shortcommit
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build and push final image
         uses: docker/build-push-action@v5
