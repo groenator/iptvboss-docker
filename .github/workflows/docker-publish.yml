@@ -85,8 +85,7 @@ jobs:
       - name: Set release tag as environment variable
         id: set-stable-tag
         run: |
-          LATEST_TAG=$(cat release)
-          echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
+          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta
@@ -106,14 +105,15 @@ jobs:
 
       - name: Short commit
         id: shortcommit
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build and push final image
         uses: docker/build-push-action@v5
         with:
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: LATEST_TAG=${{ env.LATEST_TAG }}
+          build-args: |
+            LATEST_TAG=${{ env.LATEST_TAG }}
           tags: ${{ steps.meta.outputs.tags }}
           push: true
           context: .
@@ -149,12 +149,11 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: groenator
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set release tag as environment variable
-        id: set-beta-tag
+        id: set-stable-tag
         run: |
-          BETA_TAG=$(cat beta-release)
-          echo "BETA_TAG=${BETA_TAG}" >> $GITHUB_ENV
-          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
+          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta-beta
@@ -174,7 +173,7 @@ jobs:
 
       - name: Set short commit
         id: commit
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build and push final image
         uses: docker/build-push-action@v5
@@ -217,11 +216,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set release tag as environment variable
-        id: set-beta-tag
+        id: set-stable-tag
         run: |
-          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
+          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta-beta
