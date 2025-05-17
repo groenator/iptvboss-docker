@@ -19,9 +19,6 @@ on:
       - beta-release
       - .github/workflows/docker-publish.yml
   pull_request:
-    types:
-      - opened
-      - synchronize
     paths:
       - Dockerfile
       - Dockerfile.headless
