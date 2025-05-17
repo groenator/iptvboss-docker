@@ -60,9 +60,7 @@ jobs:
       (
         github.event_name == 'push' ||
         github.event_name == 'release' ||
-        (github.event_name == 'pull_request' &&
-         github.event.pull_request.head.repo.full_name == github.repository &&
-         github.actor != 'dependabot[bot]')
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
     needs: [codeql]
     runs-on: ubuntu-latest
@@ -110,7 +108,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       - name: Short commit
@@ -138,9 +136,7 @@ jobs:
         (
           github.event_name == 'push' ||
           github.event_name == 'release' ||
-          (github.event_name == 'pull_request' &&
-           github.event.pull_request.head.repo.full_name == github.repository &&
-           github.actor != 'dependabot[bot]')
+          (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
         )
       needs: [codeql]
       runs-on: ubuntu-latest
@@ -184,7 +180,7 @@ jobs:
               type=semver,pattern=v{{major}}.{{minor}}
               type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
               type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-              type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+              type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
               type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
         # Build and push Beta Image
         - name: Short commit
@@ -210,9 +206,7 @@ jobs:
       (
         github.event_name == 'push' ||
         github.event_name == 'release' ||
-        (github.event_name == 'pull_request' &&
-         github.event.pull_request.head.repo.full_name == github.repository &&
-         github.actor != 'dependabot[bot]')
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
     needs: [codeql]
     runs-on: ubuntu-latest
@@ -260,7 +254,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       - name: Set short commit
@@ -286,9 +280,7 @@ jobs:
       (
         github.event_name == 'push' ||
         github.event_name == 'release' ||
-        (github.event_name == 'pull_request' &&
-         github.event.pull_request.head.repo.full_name == github.repository &&
-         github.actor != 'dependabot[bot]')
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
     needs: [codeql]
     runs-on: ubuntu-latest
@@ -336,7 +328,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       # Build and push Beta Image
