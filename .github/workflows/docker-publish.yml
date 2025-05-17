@@ -82,6 +82,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for release file
+        run: |
+          if [[ ! -f release || ! -s release ]]; then
+            echo "release file is missing or empty"
+            exit 1
+          fi
+
       - name: Set release tag as environment variable
         id: set-stable-tag
         run: |
@@ -147,6 +155,14 @@ jobs:
             registry: ${{ env.REGISTRY }}
             username: groenator
             password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Check for release file
+          run: |
+            if [[ ! -f release || ! -s release ]]; then
+              echo "release file is missing or empty"
+              exit 1
+            fi
+
         - name: Set release tag as environment variable
           id: set-stable-tag
           run: |
@@ -212,7 +228,15 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set release btag as environment variable
+
+      - name: Check for beta-release file
+        run: |
+          if [[ ! -f beta-release || ! -s beta-release ]]; then
+            echo "beta-release file is missing or empty"
+            exit 1
+          fi
+
+      - name: Set release beta-tag as environment variable
         id: set-beta-tag
         run: |
           echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
@@ -278,6 +302,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for beta-release file
+        run: |
+          if [[ ! -f beta-release || ! -s beta-release ]]; then
+            echo "beta-release file is missing or empty"
+            exit 1
+          fi
+          
       - name: Set release tag as environment variable
         id: set-beta-tag
         run: |
