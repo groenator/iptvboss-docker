@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - '**'
     tags:
       - '*'
     paths:
@@ -19,9 +18,6 @@ on:
       - beta-release
       - .github/workflows/docker-publish.yml
   pull_request:
-    types:
-      - opened
-      - synchronize
     paths:
       - Dockerfile
       - Dockerfile.headless
@@ -58,7 +54,7 @@ jobs:
     if: |
       github.repository == '${{ github.repository }}' &&
       (
-        github.event_name == 'push' ||
+        (github.event_name == 'push' ||
         github.event_name == 'release' ||
         (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
@@ -82,6 +78,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for release file
+        run: |
+          if [[ ! -f release || ! -s release ]]; then
+            echo "release file is missing or empty"
+            exit 1
+          fi
+
       - name: Set release tag as environment variable
         id: set-stable-tag
         run: |
@@ -100,7 +104,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       - name: Short commit
@@ -122,11 +126,81 @@ jobs:
       - name: Clean Buildx Cache
         run: docker buildx prune -f --all
 
+  build-headless-stable:
+      if: |
+        github.repository == '${{ github.repository }}' &&
+        (
+          (github.event_name == 'push' ||
+          github.event_name == 'release' ||
+          (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+        )
+      needs: [codeql]
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        packages: write
+        id-token: write
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+        - name: Log into registry ${{ env.REGISTRY }}
+          uses: docker/login-action@v3
+          with:
+            registry: ${{ env.REGISTRY }}
+            username: groenator
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Check for release file
+          run: |
+            if [[ ! -f release || ! -s release ]]; then
+              echo "release file is missing or empty"
+              exit 1
+            fi
+
+        - name: Set release tag as environment variable
+          id: set-stable-tag
+          run: |
+            echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+        - name: Extract Docker metadata
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            flavor: |
+              latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            images: |
+              ghcr.io/groenator/iptvboss-docker-headless-stable
+            tags: |
+              type=ref,event=pr
+              type=semver,pattern=v{{major}}.{{minor}}
+              type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
+              type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
+              type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+              type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
+        # Build and push Beta Image
+        - name: Short commit
+          id: shortcommit
+          run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        - name: Build and push final image
+          uses: docker/build-push-action@v5
+          with:
+            platforms: linux/amd64,linux/arm64
+            labels: ${{ steps.meta.outputs.labels }}
+            build-args: |
+              LATEST_TAG=${{ env.LATEST_TAG }}
+            tags: ${{ steps.meta.outputs.tags }}
+            push: true
+            context: .
+            file: Dockerfile.headless
+        - name: Clean Buildx Cache
+          run: docker buildx prune -f --all
+
   build-beta:
     if: |
       github.repository == '${{ github.repository }}' &&
       (
-        github.event_name == 'push' ||
+        (github.event_name == 'push' ||
         github.event_name == 'release' ||
         (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
@@ -150,10 +224,18 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set release tag as environment variable
-        id: set-stable-tag
+
+      - name: Check for beta-release file
         run: |
-          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+          if [[ ! -f beta-release || ! -s beta-release ]]; then
+            echo "beta-release file is missing or empty"
+            exit 1
+          fi
+
+      - name: Set release beta-tag as environment variable
+        id: set-beta-tag
+        run: |
+          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta-beta
@@ -168,7 +250,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       - name: Set short commit
@@ -192,7 +274,7 @@ jobs:
     if: |
       github.repository == '${{ github.repository }}' &&
       (
-        github.event_name == 'push' ||
+        (github.event_name == 'push' ||
         github.event_name == 'release' ||
         (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       )
@@ -216,10 +298,18 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: groenator
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set release tag as environment variable
-        id: set-stable-tag
+
+      - name: Check for beta-release file
         run: |
-          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+          if [[ ! -f beta-release || ! -s beta-release ]]; then
+            echo "beta-release file is missing or empty"
+            exit 1
+          fi
+
+      - name: Set release tag as environment variable
+        id: set-beta-tag
+        run: |
+          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta-beta
@@ -234,7 +324,7 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
       # Build and push Beta Image
@@ -255,65 +345,3 @@ jobs:
           file: Dockerfile.headless
       - name: Clean Buildx Cache
         run: docker buildx prune -f --all
-
-  build-headless-stable:
-      if: |
-        github.repository == '${{ github.repository }}' &&
-        (
-          github.event_name == 'push' ||
-          github.event_name == 'release' ||
-          (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
-        )
-      needs: [codeql]
-      runs-on: ubuntu-latest
-      permissions:
-        contents: read
-        packages: write
-        id-token: write
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
-        - name: Log into registry ${{ env.REGISTRY }}
-          uses: docker/login-action@v3
-          with:
-            registry: ${{ env.REGISTRY }}
-            username: groenator
-            password: ${{ secrets.GITHUB_TOKEN }}
-        - name: Set release tag as environment variable
-          id: set-stable-tag
-          run: |
-            echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
-        - name: Extract Docker metadata
-          id: meta
-          uses: docker/metadata-action@v5
-          with:
-            flavor: |
-              latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            images: |
-              ghcr.io/groenator/iptvboss-docker-headless-stable
-            tags: |
-              type=ref,event=pr
-              type=semver,pattern=v{{major}}.{{minor}}
-              type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
-              type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-              type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/') }}
-              type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
-        # Build and push Beta Image
-        - name: Short commit
-          id: shortcommit
-          run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        - name: Build and push final image
-          uses: docker/build-push-action@v5
-          with:
-            platforms: linux/amd64,linux/arm64
-            labels: ${{ steps.meta.outputs.labels }}
-            build-args: |
-              LATEST_TAG=${{ env.LATEST_TAG }}
-            tags: ${{ steps.meta.outputs.tags }}
-            push: true
-            context: .
-            file: Dockerfile.headless
-        - name: Clean Buildx Cache
-          run: docker buildx prune -f --all
