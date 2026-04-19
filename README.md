@@ -57,8 +57,8 @@ services:
     environment:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
-      TZ: "US/Eastern" #Set the timezone for the container.
-      CRON_SCHEDULE: "0 0 * * *" #Set the cron schedule for the cron job that will update the EPG data.
+      TZ: "US/Eastern" #S et the timezone for the container.
+      CRON_SCHEDULE: "0 0 * * *" # Set the cron schedule for the cron job that will update the EPG data.
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
       - 8001:8001 # Used by XC Server
@@ -113,6 +113,7 @@ services:
     image: ghcr.io/groenator/iptvboss-docker-beta:<version>  # Use the beta image with tag
     # ... (rest of your docker-compose configuration)
 ```
+
 Example deploying the beta version using docker cli:
 
 ```bash
@@ -173,7 +174,7 @@ services:
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
       CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
-      TZ: "US/Eastern" #Set the timezone for the container.
+      TZ: "US/Eastern" # Set the timezone for the container.
     ports:
     - 8001:8001 # Used by XC Server
     - 5901:5901 # Used by the VNC Server to connect to the container using the VNC client.
