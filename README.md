@@ -57,7 +57,7 @@ services:
     environment:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
-      TZ: "US/Eastern" #S et the timezone for the container.
+      TZ: "US/Eastern" # Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" # Set the cron schedule for the cron job that will update the EPG data.
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
