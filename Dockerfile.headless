@@ -41,11 +41,11 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
         rm -f iptvboss_${BETA_TAG#v}_${CPU}.deb; \
     fi
 
-# Create iptvboss user
-RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
-
-# Copy the cron file to the cron.d directory
-COPY iptvboss-cron /headless/iptvboss-cron
+# Create a new user with home directory set to /headless
+RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
+    touch /headless/iptvboss-cron && \
+    chown iptvboss:iptvboss /headless/iptvboss-cron && \
+    chmod 600 /headless/iptvboss-cron
 
 # Copy the xcserver file
 COPY xcserver.sh /headless/xcserver.sh

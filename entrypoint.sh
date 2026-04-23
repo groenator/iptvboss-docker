@@ -45,18 +45,17 @@ fi
 
 # The following will run as iptvboss user due to gosu command above
 if [ -n "$CRON_SCHEDULE" ]; then
-    # Function to update cron job schedule based on the provided environment variable
-    update_cron_schedule() {
-        CRON_SCHEDULE="${1:-0 04-17/12 * * *}"  # Default schedule if not provided
-        crontab -r
-        sed -i -e "s|.*iptvboss.*|${CRON_SCHEDULE} /usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log|" /headless/iptvboss-cron
-        crontab /headless/iptvboss-cron
-    }
-
-    update_cron_schedule "$CRON_SCHEDULE"
-    echo "CRON_SCHEDULE set for $CRON_SCHEDULE as defined. Updated the cron job schedule."
+    echo "Configuring Cron schedule for iptvboss user..."
+    CRON_LINE="$CRON_SCHEDULE /usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log 2>&1"
+    if grep -q 'iptvboss -nogui' /headless/iptvboss-cron 2>/dev/null; then
+        sed -i -e "s|.*iptvboss -nogui.*|$CRON_LINE|" /headless/iptvboss-cron
+    else
+        echo "$CRON_LINE" >> /headless/iptvboss-cron
+    fi
+    crontab /headless/iptvboss-cron
+    echo "CRON_SCHEDULE set for $CRON_SCHEDULE. Updated the cron job schedule."
 else
-    echo "CRON_SCHEDULE not set. Using default schedule."
+    echo "CRON_SCHEDULE not set. No cron job configured for iptvboss."
 fi
 
 # Configure cronitor if API key is provided
