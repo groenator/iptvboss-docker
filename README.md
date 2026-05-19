@@ -205,3 +205,31 @@ docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001
 -v <your-local-volume>:/headless/IPTVBoss
 ghcr.io/groenator/iptvboss-docker:latest
 ```
+
+## Full noVNC client and browser clipboard
+
+For browser access, the full noVNC client is recommended:
+
+```text
+http://<host-ip>:6901/vnc.html?autoconnect=true&password=vncpassword&resize=scale
+```
+
+The full noVNC client provides the browser toolbar and clipboard controls, which makes copy/paste work better from the browser.
+
+The lite noVNC client is still available:
+
+```text
+http://<host-ip>:6901/?password=vncpassword
+```
+
+## Dropbox authorization links
+
+If Dropbox authorization links do not open, make sure the desktop default browser is set to Mozilla Firefox.
+
+Inside the VNC desktop:
+
+```text
+Applications → Settings → Default Applications → Internet → Web Browser → Mozilla Firefox
+```
+
+The container now sets Mozilla Firefox as the default XFCE/XDG web browser when no existing user preference is found.
