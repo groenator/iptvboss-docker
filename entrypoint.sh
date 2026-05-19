@@ -33,6 +33,56 @@ if [ "$(id -u)" = "0" ]; then
     chmod u+s /usr/sbin/cron && \
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
+# Set Mozilla Firefox as the default browser for XFCE/XDG when no user preference exists.
+# This helps external authorization links, such as Dropbox auth links, open correctly.
+FIREFOX_CMD="$(command -v firefox || command -v firefox-esr || true)"
+
+if [ -n "$FIREFOX_CMD" ]; then
+  mkdir -p /headless/.config/xfce4
+  mkdir -p /headless/.config
+  mkdir -p /headless/.local/share/applications
+
+  if [ ! -f /headless/.config/xfce4/helpers.rc ] || ! grep -q '^WebBrowser=' /headless/.config/xfce4/helpers.rc; then
+    echo "Setting Mozilla Firefox as the default XFCE web browser..."
+    printf 'WebBrowser=firefox\n' > /headless/.config/xfce4/helpers.rc
+  fi
+
+  if [ ! -f /headless/.local/share/applications/firefox.desktop ]; then
+    echo "Creating Mozilla Firefox XDG desktop entry..."
+    cat > /headless/.local/share/applications/firefox.desktop <<EOF2
+[Desktop Entry]
+Type=Application
+Name=Mozilla Firefox
+Exec=$FIREFOX_CMD %U
+Icon=firefox
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+EOF2
+  fi
+
+  if [ ! -f /headless/.config/mimeapps.list ]; then
+    echo "Setting Mozilla Firefox as the default XDG handler for web links..."
+    cat > /headless/.config/mimeapps.list <<'EOF2'
+[Default Applications]
+text/html=firefox.desktop
+text/xml=firefox.desktop
+application/xhtml+xml=firefox.desktop
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+
+[Added Associations]
+text/html=firefox.desktop;
+text/xml=firefox.desktop;
+application/xhtml+xml=firefox.desktop;
+x-scheme-handler/http=firefox.desktop;
+x-scheme-handler/https=firefox.desktop;
+EOF2
+  fi
+else
+  echo "Mozilla Firefox command not found. Skipping default browser setup."
+fi
+
     # Fix XFCE trust for desktop executable files (fixes "Untrusted application launcher" dialog)
     # See: https://github.com/groenator/iptvboss-docker/issues/206
     mkdir -p /headless/.config/xfce4/xfconf/xfce-perchannel-xml
