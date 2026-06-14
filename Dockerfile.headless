@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the Python script into the container
 COPY cronitor.py /headless/scripts/
+COPY configure_cron_schedule.sh /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
@@ -51,7 +52,7 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
 COPY xcserver.sh /headless/xcserver.sh
 
 # Make the script executable
-RUN chmod +x /headless/xcserver.sh
+RUN chmod +x /headless/xcserver.sh /headless/scripts/configure_cron_schedule.sh
 
 # Expose the XC server port
 EXPOSE 8001
