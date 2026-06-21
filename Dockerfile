@@ -44,7 +44,7 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     fi
 
 # Create a new user with home directory set to /headless
-RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
+RUN useradd -u 911 -U -d /headless/iptvboss -s /bin/bash iptvboss && \
     touch /headless/iptvboss-cron && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
