@@ -43,19 +43,7 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 # The following will run as iptvboss user due to gosu command above
-if [ -n "$CRON_SCHEDULE" ]; then
-    echo "Configuring Cron schedule for iptvboss user..."
-    CRON_LINE="$CRON_SCHEDULE /usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log 2>&1"
-    if grep -q 'iptvboss -nogui' /headless/iptvboss-cron 2>/dev/null; then
-        sed -i -e "s|.*iptvboss -nogui.*|$CRON_LINE|" /headless/iptvboss-cron
-    else
-        echo "$CRON_LINE" >> /headless/iptvboss-cron
-    fi
-    crontab /headless/iptvboss-cron
-    echo "CRON_SCHEDULE set for $CRON_SCHEDULE. Updated the cron job schedule."
-else
-    echo "CRON_SCHEDULE not set. No cron job configured for iptvboss."
-fi
+/headless/scripts/configure_cron_schedule.sh
 
 # Configure cronitor if API key is provided
 if [ -n "$CRONITOR_API_KEY" ]; then

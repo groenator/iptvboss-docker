@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the Python script into the container
 COPY cronitor.py /headless/scripts/
+COPY configure_cron_schedule.sh /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
@@ -57,7 +58,7 @@ EXPOSE 8001
 COPY entrypoint.sh /headless/entrypoint.sh
 
 # Run the entrypoint script
-RUN chmod +x /headless/entrypoint.sh
+RUN chmod +x /headless/entrypoint.sh /headless/scripts/configure_cron_schedule.sh
 
 # Set the entrypoint script to be executed when the container starts
 ENTRYPOINT ["/headless/entrypoint.sh"]
