@@ -10,14 +10,15 @@ on:
     tags:
       - '*'
     paths:
-      - release
-      - beta-release
       - Dockerfile
       - Dockerfile.headless
       - cronitor.py
       - entrypoint.sh
       - configure_cron_schedule.sh
+      - release
+      - beta-release
       - .github/workflows/docker-publish.yml
+  pull_request:
 
 # Define environment variables
 env:
