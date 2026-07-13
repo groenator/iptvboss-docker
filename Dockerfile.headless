@@ -48,6 +48,13 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
 
+# Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
+# the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
+# entrypoint only chowns /headless when PUID/PGID are set.
+RUN mkdir -p /headless/.cache && \
+    chown iptvboss:iptvboss /headless/.cache && \
+    chmod 700 /headless/.cache
+
 # Copy the xcserver file
 COPY xcserver.sh /headless/xcserver.sh
 
