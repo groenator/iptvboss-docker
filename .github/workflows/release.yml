@@ -28,7 +28,7 @@ jobs:
 
       # Step 2: Clone your repository
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       # Step 3: Update the beta-release file
       - name: Update beta-release file
@@ -71,7 +71,7 @@ jobs:
 
         # Step 2: Clone your repository
         - name: Checkout repository
-          uses: actions/checkout@v3
+          uses: actions/checkout@v5
 
         # Step 3: Update the stable-release file
         - name: Update stable-release file
