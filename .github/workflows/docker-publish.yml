@@ -175,8 +175,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           push: ${{ github.event_name == 'push' }}
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.job }}
+          cache-to: type=gha,mode=max,scope=${{ github.job }},ignore-error=true
       - name: Clean Buildx Cache
         run: docker buildx prune -f --all
 
@@ -237,6 +237,8 @@ jobs:
             push: ${{ github.event_name == 'push' }}
             context: .
             file: Dockerfile.headless
+            cache-from: type=gha,scope=${{ github.job }}
+            cache-to: type=gha,mode=max,scope=${{ github.job }},ignore-error=true
         - name: Clean Buildx Cache
           run: docker buildx prune -f --all
 
@@ -301,6 +303,8 @@ jobs:
           tags: ${{ steps.meta-beta.outputs.tags }}
           push: ${{ github.event_name == 'push' }}
           context: .
+          cache-from: type=gha,scope=${{ github.job }}
+          cache-to: type=gha,mode=max,scope=${{ github.job }},ignore-error=true
       - name: Clean Buildx Cache
         run: docker buildx prune -f --all
 
@@ -366,5 +370,7 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           context: .
           file: Dockerfile.headless
+          cache-from: type=gha,scope=${{ github.job }}
+          cache-to: type=gha,mode=max,scope=${{ github.job }},ignore-error=true
       - name: Clean Buildx Cache
         run: docker buildx prune -f --all
