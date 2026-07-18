@@ -37,7 +37,7 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     fi && \
     # Build the beta version
     if [ -n "$BETA_TAG" ]; then \
-        wget https://github.com/walrusone/iptvboss-beta/releases/download/${BETA_TAG#v}/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
+        wget https://github.com/walrusone/iptvboss-beta/releases/download/${BETA_TAG}/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
         apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
         cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-beta.desktop && \
         chmod 777 /headless/Desktop/iptvboss-beta.desktop; \
