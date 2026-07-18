@@ -3,7 +3,9 @@ FROM  consol/debian-xfce-vnc:v2.0.4
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the environment variables for the build
 ARG LATEST_TAG
 ARG BETA_TAG
 
