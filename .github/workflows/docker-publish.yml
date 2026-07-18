@@ -4,27 +4,9 @@ on:
   push:
     branches:
       - master
-    paths:
-      - Dockerfile
-      - Dockerfile.headless
-      - cronitor.py
-      - entrypoint.sh
-      - xcserver.sh
-      - configure_cron_schedule.sh
-      - release
-      - beta-release
-      - .github/workflows/docker-publish.yml
   pull_request:
-    paths:
-      - Dockerfile
-      - Dockerfile.headless
-      - cronitor.py
-      - entrypoint.sh
-      - xcserver.sh
-      - configure_cron_schedule.sh
-      - release
-      - beta-release
-      - .github/workflows/docker-publish.yml
+    branches:
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -36,6 +18,29 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  codeql:
+    name: Analyze (python)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:python
+
   changes:
     name: Detect affected release channels
     runs-on: ubuntu-latest
@@ -110,8 +115,8 @@ jobs:
           echo "Build beta images: $BETA"
 
   build-stable:
-    if: needs.changes.outputs.stable == 'true'
-    needs: [changes]
+    if: needs.changes.outputs.stable == 'true' && needs.codeql.result == 'success'
+    needs: [changes, codeql]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -176,8 +181,8 @@ jobs:
         run: docker buildx prune -f --all
 
   build-headless-stable:
-      if: needs.changes.outputs.stable == 'true'
-      needs: [changes]
+      if: needs.changes.outputs.stable == 'true' && needs.codeql.result == 'success'
+      needs: [changes, codeql]
       runs-on: ubuntu-latest
       permissions:
         contents: read
@@ -236,8 +241,8 @@ jobs:
           run: docker buildx prune -f --all
 
   build-beta:
-    if: needs.changes.outputs.beta == 'true'
-    needs: [changes]
+    if: needs.changes.outputs.beta == 'true' && needs.codeql.result == 'success'
+    needs: [changes, codeql]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -300,8 +305,8 @@ jobs:
         run: docker buildx prune -f --all
 
   build-headless-beta:
-    if: needs.changes.outputs.beta == 'true'
-    needs: [changes]
+    if: needs.changes.outputs.beta == 'true' && needs.codeql.result == 'success'
+    needs: [changes, codeql]
     runs-on: ubuntu-latest
     permissions:
       contents: read
