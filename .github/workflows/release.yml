@@ -15,23 +15,50 @@ jobs:
         id: fetch_latest
         run: |
           API_URL="https://api.github.com/repos/walrusone/iptvboss-beta/releases/latest"
-          RELEASE_INFO=$(curl -s $API_URL)
-          sleep 20s
-          echo "Release Info: $RELEASE_INFO"
+          RELEASE_INFO=$(curl --fail --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL")
           VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
           if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
             echo "Error: Could not fetch version from latest release."
             exit 1
           fi
+
+          ASSET_VERSION="${VERSION#v}"
+          REQUIRED_ASSETS=(
+            "iptvboss_${ASSET_VERSION}_amd64.deb"
+            "iptvboss_${ASSET_VERSION}_arm64.deb"
+          )
+          MISSING_ASSETS=()
+
+          for asset in "${REQUIRED_ASSETS[@]}"; do
+            if ! echo "$RELEASE_INFO" | jq -e --arg asset "$asset" \
+              '.assets | any(.name == $asset and .state == "uploaded" and .size > 0)' \
+              > /dev/null; then
+              MISSING_ASSETS+=("$asset")
+            fi
+          done
+
+          if (( ${#MISSING_ASSETS[@]} > 0 )); then
+            echo "Release $VERSION is not ready; missing required assets: ${MISSING_ASSETS[*]}"
+            echo "assets_ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           echo "Latest version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> "$GITHUB_ENV"
+          echo "assets_ready=true" >> "$GITHUB_OUTPUT"
 
       # Step 2: Clone your repository
       - name: Checkout repository
+        if: steps.fetch_latest.outputs.assets_ready == 'true'
         uses: actions/checkout@v5
 
       # Step 3: Update the beta-release file
       - name: Update beta-release file
+        if: steps.fetch_latest.outputs.assets_ready == 'true'
         run: |
           echo "${{ env.version }}" > beta-release
           git config user.name "GitHub Actions Bot"
@@ -41,6 +68,7 @@ jobs:
 
       # Step 4: Create a Pull Request
       - name: Create Pull Request
+        if: steps.fetch_latest.outputs.assets_ready == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -59,22 +87,50 @@ jobs:
           id: fetch_latest
           run: |
             API_URL="https://api.github.com/repos/walrusone/iptvboss-release/releases/latest"
-            RELEASE_INFO=$(curl -s $API_URL)
-            echo "Release Info: $RELEASE_INFO"
+            RELEASE_INFO=$(curl --fail --silent --show-error --location \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$API_URL")
             VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
             if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
               echo "Error: Could not fetch version from latest release."
               exit 1
             fi
+
+            ASSET_VERSION="${VERSION#v}"
+            REQUIRED_ASSETS=(
+              "iptvboss_${ASSET_VERSION}_amd64.deb"
+              "iptvboss_${ASSET_VERSION}_arm64.deb"
+            )
+            MISSING_ASSETS=()
+
+            for asset in "${REQUIRED_ASSETS[@]}"; do
+              if ! echo "$RELEASE_INFO" | jq -e --arg asset "$asset" \
+                '.assets | any(.name == $asset and .state == "uploaded" and .size > 0)' \
+                > /dev/null; then
+                MISSING_ASSETS+=("$asset")
+              fi
+            done
+
+            if (( ${#MISSING_ASSETS[@]} > 0 )); then
+              echo "Release $VERSION is not ready; missing required assets: ${MISSING_ASSETS[*]}"
+              echo "assets_ready=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
             echo "Latest version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_ENV
+            echo "version=$VERSION" >> "$GITHUB_ENV"
+            echo "assets_ready=true" >> "$GITHUB_OUTPUT"
 
         # Step 2: Clone your repository
         - name: Checkout repository
+          if: steps.fetch_latest.outputs.assets_ready == 'true'
           uses: actions/checkout@v5
 
         # Step 3: Update the stable-release file
         - name: Update stable-release file
+          if: steps.fetch_latest.outputs.assets_ready == 'true'
           run: |
             echo "${{ env.version }}" > release
             git config user.name "GitHub Actions Bot"
@@ -84,6 +140,7 @@ jobs:
 
         # Step 4: Create a Pull Request
         - name: Create Pull Request
+          if: steps.fetch_latest.outputs.assets_ready == 'true'
           uses: peter-evans/create-pull-request@v5
           with:
             token: ${{ secrets.GITHUB_TOKEN }}
