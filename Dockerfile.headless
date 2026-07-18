@@ -10,6 +10,7 @@ ARG BETA_TAG
 
 USER 0
 
+# Set the working directory
 WORKDIR /headless
 
 # Update package list and upgrade installed packages

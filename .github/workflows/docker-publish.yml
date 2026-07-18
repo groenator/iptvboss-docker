@@ -1,224 +1,305 @@
 name: Docker
 
 on:
-  release:
-    types:
-      - published
   push:
     branches:
       - master
-    tags:
-      - '*'
-    paths:
-      - Dockerfile
-      - Dockerfile.headless
-      - cronitor.py
-      - entrypoint.sh
-      - configure_cron_schedule.sh
-      - release
-      - beta-release
-      - .github/workflows/docker-publish.yml
   pull_request:
-    paths:
-      - Dockerfile
-      - Dockerfile.headless
-      - cronitor.py
-      - entrypoint.sh
-      - configure_cron_schedule.sh
-      - release
-      - beta-release
-      - .github/workflows/docker-publish.yml
+    branches:
+      - master
 
-# Define environment variables
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   codeql:
+    name: Analyze (python)
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
+      packages: read
       security-events: write
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.11
-      - uses: github/codeql-action/init@v4
-        with:
-          languages: python
-      - uses: github/codeql-action/autobuild@v4
-      - uses: github/codeql-action/analyze@v4
-
-  build-stable:
-    if: |
-      github.event_name == 'push' ||
-      github.event_name == 'release' ||
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        github.actor != 'dependabot[bot]'
-      )
-    needs: [codeql]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
         with:
-          registry: ${{ env.REGISTRY }}
-          username: groenator
-          password: ${{ secrets.GITHUB_TOKEN }}
+          languages: python
+          build-mode: none
 
-      - name: Check for release file
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:python
+
+  changes:
+    name: Detect affected images
+    runs-on: ubuntu-latest
+    outputs:
+      stable: ${{ steps.detect.outputs.stable }}
+      beta: ${{ steps.detect.outputs.beta }}
+      image_matrix: ${{ steps.detect.outputs.image_matrix }}
+      build_matrix: ${{ steps.detect.outputs.build_matrix }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed images
+        id: detect
+        shell: bash
         run: |
-          if [[ ! -f release || ! -s release ]]; then
-            echo "release file is missing or empty"
-            exit 1
+          STABLE=false
+          BETA=false
+          CHANGED_FILES=()
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            read -r BASE_SHA HEAD_SHA < <(
+              jq -r '[.pull_request.base.sha, .pull_request.head.sha] | @tsv' "$GITHUB_EVENT_PATH"
+            )
+
+            if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null &&
+              git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+              mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+            else
+              echo "Could not inspect the complete pull request range; rebuilding all images."
+              STABLE=true
+              BETA=true
+            fi
+          else
+            read -r BASE_SHA HEAD_SHA < <(
+              jq -r '[.before, .after] | @tsv' "$GITHUB_EVENT_PATH"
+            )
+
+            if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+              mapfile -t CHANGED_FILES < <(git diff-tree --root --no-commit-id --name-only -r "$HEAD_SHA")
+            elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null &&
+              git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+              mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+            else
+              echo "Could not inspect the complete push range; rebuilding all images."
+              STABLE=true
+              BETA=true
+            fi
           fi
 
-      - name: Set release tag as environment variable
-        id: set-stable-tag
+          for file in "${CHANGED_FILES[@]}"; do
+            echo "Changed: $file"
+            case "$file" in
+              release)
+                STABLE=true
+                ;;
+              beta-release)
+                BETA=true
+                ;;
+              Dockerfile|Dockerfile.headless|cronitor.py|entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
+                STABLE=true
+                BETA=true
+                ;;
+            esac
+          done
+
+          IMAGE_MATRIX=$(jq -cn \
+            --argjson stable "$STABLE" \
+            --argjson beta "$BETA" \
+            '[
+              if $stable then
+                {
+                  id: "stable",
+                  image: "ghcr.io/groenator/iptvboss-docker",
+                  dockerfile: "Dockerfile",
+                  version_file: "release",
+                  build_arg: "LATEST_TAG"
+                },
+                {
+                  id: "headless-stable",
+                  image: "ghcr.io/groenator/iptvboss-docker-headless-stable",
+                  dockerfile: "Dockerfile.headless",
+                  version_file: "release",
+                  build_arg: "LATEST_TAG"
+                }
+              else empty end,
+              if $beta then
+                {
+                  id: "beta",
+                  image: "ghcr.io/groenator/iptvboss-docker-beta",
+                  dockerfile: "Dockerfile",
+                  version_file: "beta-release",
+                  build_arg: "BETA_TAG"
+                },
+                {
+                  id: "headless-beta",
+                  image: "ghcr.io/groenator/iptvboss-docker-headless-beta",
+                  dockerfile: "Dockerfile.headless",
+                  version_file: "beta-release",
+                  build_arg: "BETA_TAG"
+                }
+              else empty end
+            ]')
+
+          BUILD_MATRIX=$(jq -c '
+            [
+              .[] as $image |
+              [
+                {arch: "amd64", platform: "linux/amd64", runner: "ubuntu-24.04"},
+                {arch: "arm64", platform: "linux/arm64", runner: "ubuntu-24.04-arm"}
+              ][] as $platform |
+              $image + $platform
+            ]
+          ' <<< "$IMAGE_MATRIX")
+
+          echo "stable=$STABLE" >> "$GITHUB_OUTPUT"
+          echo "beta=$BETA" >> "$GITHUB_OUTPUT"
+          echo "image_matrix=$IMAGE_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "build_matrix=$BUILD_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Build stable images: $STABLE"
+          echo "Build beta images: $BETA"
+          echo "Platform build matrix: $BUILD_MATRIX"
+
+  build_platforms:
+    name: Build ${{ matrix.id }} (${{ matrix.arch }})
+    if: needs.changes.outputs.build_matrix != '[]' && needs.codeql.result == 'success'
+    needs: [changes, codeql]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.build_matrix) }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Read release version
+        id: version
+        shell: bash
+        env:
+          VERSION_FILE: ${{ matrix.version_file }}
         run: |
-          echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
+          if [[ ! -s "$VERSION_FILE" ]]; then
+            echo "$VERSION_FILE is missing or empty"
+            exit 1
+          fi
+          VERSION=$(tr -d '\r\n' < "$VERSION_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
-          flavor: |
-            latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-          images: |
-            ghcr.io/groenator/iptvboss-docker
+          images: ${{ matrix.image }}
           tags: |
-            type=ref,event=pr
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
-            type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
+            type=raw,value=${{ steps.version.outputs.version }}
 
-      - name: Short commit
-        id: shortcommit
-        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-      - name: Build and push final image
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate platform image
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v7
         with:
-          platforms: linux/amd64,linux/arm64
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            LATEST_TAG=${{ env.LATEST_TAG }}
-          tags: ${{ steps.meta.outputs.tags }}
-          push: true
+            ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
+
+      - name: Build and push platform image by digest
+        id: build
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Clean Buildx Cache
-        run: docker buildx prune -f --all
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+          outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
 
-  build-headless-stable:
-      if: |
-        github.event_name == 'push' ||
-        github.event_name == 'release' ||
-        (
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          github.actor != 'dependabot[bot]'
-        )
-      needs: [codeql]
-      runs-on: ubuntu-latest
-      permissions:
-        contents: read
-        packages: write
-        id-token: write
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v5
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v4
-        - name: Log into registry ${{ env.REGISTRY }}
-          uses: docker/login-action@v4
-          with:
-            registry: ${{ env.REGISTRY }}
-            username: groenator
-            password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Export image digest
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid image digest: $DIGEST"
+            exit 1
+          fi
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
 
-        - name: Check for release file
-          run: |
-            if [[ ! -f release || ! -s release ]]; then
-              echo "release file is missing or empty"
-              exit 1
-            fi
+      - name: Upload image digest
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.id }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
-        - name: Set release tag as environment variable
-          id: set-stable-tag
-          run: |
-            echo -e "LATEST_TAG=$(cat release)" >> $GITHUB_ENV
-        - name: Extract Docker metadata
-          id: meta
-          uses: docker/metadata-action@v6
-          with:
-            flavor: |
-              latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            images: |
-              ghcr.io/groenator/iptvboss-docker-headless-stable
-            tags: |
-              type=ref,event=pr
-              type=semver,pattern=v{{major}}.{{minor}}
-              type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
-              type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-              type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-              type=raw,value=${{ env.LATEST_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
-        # Build and push Beta Image
-        - name: Short commit
-          id: shortcommit
-          run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        - name: Build and push final image
-          uses: docker/build-push-action@v7
-          with:
-            platforms: linux/amd64,linux/arm64
-            labels: ${{ steps.meta.outputs.labels }}
-            build-args: |
-              LATEST_TAG=${{ env.LATEST_TAG }}
-            tags: ${{ steps.meta.outputs.tags }}
-            push: true
-            context: .
-            file: Dockerfile.headless
-        - name: Clean Buildx Cache
-          run: docker buildx prune -f --all
-
-  build-beta:
+  merge_manifests:
+    name: Publish ${{ matrix.id }} manifest
     if: |
-      github.event_name == 'push' ||
-      github.event_name == 'release' ||
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        github.actor != 'dependabot[bot]'
-      )
-    needs: [codeql]
-    runs-on: ubuntu-latest
+      github.event_name == 'push' &&
+      needs.changes.outputs.image_matrix != '[]' &&
+      needs.codeql.result == 'success' &&
+      needs.build_platforms.result == 'success'
+    needs: [changes, codeql, build_platforms]
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.image_matrix) }}
+    runs-on: ubuntu-24.04
     permissions:
+      actions: read
       contents: read
       packages: write
-      id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Read release version
+        id: version
+        shell: bash
+        env:
+          VERSION_FILE: ${{ matrix.version_file }}
+        run: |
+          VERSION=$(tr -d '\r\n' < "$VERSION_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download image digests
+        uses: actions/download-artifact@v5
+        with:
+          pattern: digests-${{ matrix.id }}-*
+          path: /tmp/digests
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -227,127 +308,44 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: groenator
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check for beta-release file
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }}
+
+      - name: Create multi-platform manifest
+        shell: bash
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ${{ matrix.image }}
+          METADATA_JSON: ${{ steps.meta.outputs.json }}
         run: |
-          if [[ ! -f beta-release || ! -s beta-release ]]; then
-            echo "beta-release file is missing or empty"
+          TAG_ARGS=()
+          while IFS= read -r tag; do
+            TAG_ARGS+=(--tag "$tag")
+          done < <(jq -r '.tags[]' <<< "$METADATA_JSON")
+
+          SOURCES=()
+          for digest in *; do
+            SOURCES+=("${IMAGE}@sha256:${digest}")
+          done
+
+          if (( ${#SOURCES[@]} != 2 )); then
+            echo "Expected 2 platform digests, found ${#SOURCES[@]}"
             exit 1
           fi
 
-      - name: Set release beta-tag as environment variable
-        id: set-beta-tag
-        run: |
-          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
+          docker buildx imagetools create "${TAG_ARGS[@]}" "${SOURCES[@]}"
 
-      - name: Extract Docker metadata
-        id: meta-beta
-        uses: docker/metadata-action@v6
-        with:
-          flavor: |
-            latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-          images: |
-            ghcr.io/groenator/iptvboss-docker-beta
-          tags: |
-            type=ref,event=pr
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
-            type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
-
-      - name: Set short commit
-        id: commit
-        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Build and push final image
-        uses: docker/build-push-action@v7
-        with:
-          platforms: linux/amd64,linux/arm64
-          labels: ${{ steps.meta-beta.outputs.labels }}
-          build-args: |
-            BETA_TAG=${{ env.BETA_TAG }}
-          tags: ${{ steps.meta-beta.outputs.tags }}
-          push: true
-          context: .
-      - name: Clean Buildx Cache
-        run: docker buildx prune -f --all
-
-  build-headless-beta:
-    if: |
-      github.event_name == 'push' ||
-      github.event_name == 'release' ||
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        github.actor != 'dependabot[bot]'
-      )
-    needs: [codeql]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: groenator
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check for beta-release file
-        run: |
-          if [[ ! -f beta-release || ! -s beta-release ]]; then
-            echo "beta-release file is missing or empty"
-            exit 1
-          fi
-
-      - name: Set release tag as environment variable
-        id: set-beta-tag
-        run: |
-          echo -e "BETA_TAG=$(cat beta-release)" >> $GITHUB_ENV
-
-      - name: Extract Docker metadata
-        id: meta-beta
-        uses: docker/metadata-action@v6
-        with:
-          flavor: |
-            latest=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-          images: |
-            ghcr.io/groenator/iptvboss-docker-headless-beta
-          tags: |
-            type=ref,event=pr
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
-            type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            type=raw,value=${{ env.BETA_TAG }},enable=${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
-
-      # Build and push Beta Image
-      - name: Short commit
-        id: shortcommit
-        run: echo "{name}={value}::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Build and push final image
-        uses: docker/build-push-action@v7
-        with:
-          platforms: linux/amd64,linux/arm64
-          labels: ${{ steps.meta-beta.outputs.labels }}
-          build-args: |
-            BETA_TAG=${{ env.BETA_TAG }}
-          tags: ${{ steps.meta-beta.outputs.tags }}
-          push: true
-          context: .
-          file: Dockerfile.headless
-      - name: Clean Buildx Cache
-        run: docker buildx prune -f --all
+      - name: Inspect multi-platform image
+        env:
+          IMAGE: ${{ matrix.image }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: docker buildx imagetools inspect "${IMAGE}:${VERSION}"
