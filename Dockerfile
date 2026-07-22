@@ -51,6 +51,16 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
 
+# The base image creates /headless/.cache owned by root with mode 0700, but the
+# iptvboss user runs the app and the graphics libraries it pulls in. Mesa fails
+# to create its shader cache under $XDG_CACHE_HOME (/headless/.cache) as a
+# result. The entrypoint only chowns /headless when PUID/PGID are set, so give
+# the cache dir to iptvboss at build time. This also lets Chromium, dconf and
+# the other user caches populate cleanly.
+RUN mkdir -p /headless/.cache && \
+    chown iptvboss:iptvboss /headless/.cache && \
+    chmod 700 /headless/.cache
+
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901
