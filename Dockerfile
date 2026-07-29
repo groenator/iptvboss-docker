@@ -98,16 +98,6 @@ RUN sed -i \
     's|vnc_cmd="vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION PasswordFile=$HOME/.vnc/passwd"|vnc_cmd="vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION PasswordFile=$HOME/.vnc/passwd -AcceptCutText=1 -SendCutText=1 -SendPrimary=1 -SetPrimary=1"|' \
     /dockerstartup/vnc_startup.sh
 
-# Mark the pre-installed Desktop launchers (Chromium, Firefox, IPTVBoss) as
-# trusted so double-clicking them runs the app directly instead of showing
-# the XFCE "Untrusted application launcher" dialog. gio's metadata::trusted
-# attribute is backed by gvfsd-metadata over the session D-Bus, which is only
-# available once the XFCE session has started, so this must run as an XFCE
-# autostart entry rather than from entrypoint.sh.
-COPY fix-desktop-trust.sh /usr/local/bin/fix-desktop-trust.sh
-COPY fix-desktop-trust.desktop /etc/xdg/autostart/fix-desktop-trust.desktop
-RUN chmod +x /usr/local/bin/fix-desktop-trust.sh
-
 # Expose VNC port
 EXPOSE 5901
 EXPOSE 6901

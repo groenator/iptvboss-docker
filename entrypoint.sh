@@ -88,11 +88,6 @@ else
   echo "Mozilla Firefox command not found. Skipping default browser setup."
 fi
 
-# Desktop launcher trust (gio metadata::trusted) is handled by an XFCE
-# autostart entry (fix-desktop-trust.desktop) instead of here: gvfsd-metadata,
-# which backs that attribute, is only reachable over the session D-Bus once
-# the XFCE session has actually started, and entrypoint.sh runs before that.
-
     # Fix XFCE trust for desktop executable files (fixes "Untrusted application launcher" dialog)
     # See: https://github.com/groenator/iptvboss-docker/issues/206
     mkdir -p /headless/.config/xfce4/xfconf/xfce-perchannel-xml
@@ -108,6 +103,20 @@ fi
     fi
     chown -R ${PUID}:${PGID} /headless/.config
     chown -R ${PUID}:${PGID} /headless/.local
+
+    # Keep that trust checksum backed up to persistent storage so that once a
+    # desktop launcher is manually marked "Mark As Secure And Launch", the
+    # decision survives container restarts/redeploys instead of reverting.
+    # See: https://github.com/groenator/iptvboss-docker/pull/207
+    (
+        while true; do
+            if [ -f /headless/.local/share/gvfs-metadata/home ]; then
+                cp /headless/.local/share/gvfs-metadata/home /headless/IPTVBoss/gvfs-metadata-home 2>/dev/null
+            fi
+            sleep 5
+        done
+    ) &
+
     # Change to iptvboss user for user-level commands
     exec gosu iptvboss "$BASH_SOURCE" "$@"
 fi
