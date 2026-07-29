@@ -3,7 +3,7 @@ set -e
 # Run as root to install cronitor and set permissions
 if [ "$(id -u)" = "0" ]; then
     # Set the uid and gid based on environment variables PUID/PGID
-    
+
     if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
         echo "Setting iptvboss user and group id to ${PUID} and ${PGID}..."
         groupmod -o -g "${PGID}" iptvboss
@@ -114,6 +114,7 @@ fi
 
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
+
 # Configure cronitor if API key is provided
 if [ -n "$CRONITOR_API_KEY" ]; then
     configure_cronitor() {
