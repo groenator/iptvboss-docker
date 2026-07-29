@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **Migrated the VNC image (`Dockerfile`) to Debian `trixie` and performed a full `dist-upgrade`** to pull in the latest upstream security patches for the base OS packages.
+- **Migrated the headless image (`Dockerfile.headless`) to Ubuntu 24.04** and adjusted package installations accordingly to pick up current security fixes.
+
 ### Fixed
 
 - **Chromium desktop launcher not opening**: The base image's `/dockerstartup/chrome-init.sh` generated a `CHROMIUM_FLAGS` string containing a bare `--user-data-dir` with no path value, which current Chromium builds silently refuse to start with (no renderer/GPU process ever spawns). Added a repo-local [`chrome-init.sh`](chrome-init.sh) that overrides the base script and sets `--user-data-dir=$HOME/.config/chromium-browser`.
@@ -21,5 +26,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- Updated base images and enhanced package management (Debian `trixie` dist-upgrade for the VNC image).
 - Fixed `.cache` directory ownership so it is writable by the non-root `PUID`/`PGID` user ([#234](https://github.com/groenator/iptvboss-docker/issues/234)).
