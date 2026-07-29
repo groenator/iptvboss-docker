@@ -3,6 +3,7 @@ set -e
 # Run as root to install cronitor and set permissions
 if [ "$(id -u)" = "0" ]; then
     # Set the uid and gid based on environment variables PUID/PGID
+    
     if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
         echo "Setting iptvboss user and group id to ${PUID} and ${PGID}..."
         groupmod -o -g "${PGID}" iptvboss
@@ -12,6 +13,7 @@ if [ "$(id -u)" = "0" ]; then
     else
         echo "PUID or PGID not set. Using default values."
     fi
+
     # Install cronitor
     if [ -n "$CRONITOR_API_KEY" ]; then
         echo "Installing cronitor..."
@@ -24,15 +26,18 @@ if [ "$(id -u)" = "0" ]; then
     else
         echo "CRONITOR_API_KEY not set. Skipping cronitor installation."
     fi
+
     # Start cron daemon as root
     echo "Starting the cron daemon"
     cron
     echo "The cron daemon started successfully."
+
     # Give execution rights on the cron job
     crontab -u iptvboss /headless/iptvboss-cron &&  \
     chmod u+s /usr/sbin/cron && \
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
+
 # Set Mozilla Firefox as the default browser for XFCE/XDG when no user preference exists.
 # This helps external authorization links, such as Dropbox auth links, open correctly.
 FIREFOX_CMD="$(command -v firefox || command -v firefox-esr || true)"
@@ -106,6 +111,7 @@ fi
     # Change to iptvboss user for user-level commands
     exec gosu iptvboss "$BASH_SOURCE" "$@"
 fi
+
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
 # Configure cronitor if API key is provided
@@ -115,6 +121,7 @@ if [ -n "$CRONITOR_API_KEY" ]; then
     }
     configure_cronitor
 fi
+
 # # Start XCServer on Boot
 if [ "$XC_SERVER" = "true" ]; then
     echo "Starting XCServer..."
@@ -123,6 +130,7 @@ if [ "$XC_SERVER" = "true" ]; then
 else
     echo "XC_SERVER is not set to true. XCServer will not be started."
 fi
+
 #Start vnc service
 sleep 5
 echo "Staring The VNC service"
