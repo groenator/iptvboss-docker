@@ -83,6 +83,11 @@ else
   echo "Mozilla Firefox command not found. Skipping default browser setup."
 fi
 
+# Desktop launcher trust (gio metadata::trusted) is handled by an XFCE
+# autostart entry (fix-desktop-trust.desktop) instead of here: gvfsd-metadata,
+# which backs that attribute, is only reachable over the session D-Bus once
+# the XFCE session has actually started, and entrypoint.sh runs before that.
+
     # Fix XFCE trust for desktop executable files (fixes "Untrusted application launcher" dialog)
     # See: https://github.com/groenator/iptvboss-docker/issues/206
     mkdir -p /headless/.config/xfce4/xfconf/xfce-perchannel-xml

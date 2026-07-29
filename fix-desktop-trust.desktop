@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Fix Desktop Launcher Trust
+Comment=Marks the pre-installed Desktop launchers as trusted so they run without the "Untrusted application launcher" prompt
+Exec=/usr/local/bin/fix-desktop-trust.sh
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

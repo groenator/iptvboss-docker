@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
@@ -20,8 +20,8 @@ RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev libsndfile1-dev \
     python3 python3-pip python3-requests gosu \
-    libgtk2.0-0 libgtk-3-0 libgl1 libasound2 libxtst6  \
-    libavformat* libavcodec-extra* libgdk-pixbuf2.0-0 && \
+    libgtk2.0-0t64 libgtk-3-0t64 libgl1 libasound2t64 libxtst6  \
+    libavformat-extra libavcodec-extra* libgdk-pixbuf2.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
@@ -48,6 +48,13 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
     touch /headless/iptvboss-cron && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
+
+# Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
+# the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
+# entrypoint only chowns /headless when PUID/PGID are set.
+RUN mkdir -p /headless/.cache && \
+    chown iptvboss:iptvboss /headless/.cache && \
+    chmod 700 /headless/.cache
 
 # Copy the xcserver file
 COPY xcserver.sh /headless/xcserver.sh
