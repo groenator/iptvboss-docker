@@ -29,12 +29,9 @@ fi
 
 mkdir -p /run/xpra
 export XDG_RUNTIME_DIR=/tmp
-# Keep the virtual display at a normal resolution so dialogs centered by the
-# app (e.g. Java's setLocationRelativeTo(null)) land inside the visible viewport.
-export XPRA_DEFAULT_VFB_RESOLUTION="${XPRA_DEFAULT_VFB_RESOLUTION:-1920x1080}"
 exec xpra start \
     --daemon=no \
     --bind-ws=0.0.0.0:5454 \
-    --start-child=/usr/bin/iptvboss \
-    --exit-with-children=yes \
+    --resize-display=yes \
+    --start-child-on-connect="sh -lc 'pgrep -f /usr/lib/iptvboss/bin/iptvboss >/dev/null || exec /usr/bin/iptvboss'" \
     :100
