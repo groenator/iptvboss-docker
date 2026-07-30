@@ -29,6 +29,9 @@ fi
 
 mkdir -p /run/xpra
 export XDG_RUNTIME_DIR=/tmp
+# gnome-terminal requires a UTF-8 locale.
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
 exec xpra start \
     --daemon=no \
     --bind-ws=0.0.0.0:5454 \
