@@ -35,7 +35,7 @@ RUN set -eux \
         desktop-file-utils \
         nautilus \
         gedit \
-        xterm \
+        gnome-terminal \
         libasound2t64 \
         libavcodec-extra \
         libavformat-extra \
@@ -68,7 +68,7 @@ RUN set -eux \
     && chmod 777 /run/user /run/xpra \
     && echo "<Menu/>" > /etc/xdg/menus/kde-debian-menu.menu \
     && echo "<Menu/>" > /etc/xdg/menus/debian-menu.menu \
-    && find /usr/share/applications -not -name '*iptvboss*' -not -name '*xterm*' -not -name '*Nautilus*' -not -name '*gedit*' -type f -delete \
+    && find /usr/share/applications -not -name '*iptvboss*' -not -name '*Terminal*' -not -name '*Nautilus*' -not -name '*gedit*' -type f -delete \
     && update-desktop-database
 
 # Create app user
