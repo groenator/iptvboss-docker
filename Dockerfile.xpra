@@ -90,7 +90,6 @@ RUN chmod +x /opt/xpra-entrypoint.sh
 # Expose Xpra port
 ENV XPRA_BIND="0.0.0.0"
 ENV XPRA_PORT="5454"
-ENV XPRA_AUTH="none"
 EXPOSE $XPRA_PORT
 
 VOLUME ["/config"]

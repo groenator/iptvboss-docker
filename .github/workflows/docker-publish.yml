@@ -268,7 +268,7 @@ jobs:
 
       - name: Upload image digest
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: digests-${{ matrix.id }}-${{ matrix.arch }}
           path: /tmp/digests/*
@@ -305,7 +305,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download image digests
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: digests-${{ matrix.id }}-*
           path: /tmp/digests
