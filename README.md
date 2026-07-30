@@ -1,8 +1,10 @@
 # IPTVBoss Docker Images
 
-This repo builds Docker images for running [IPTVBoss](https://github.com/walrusone/iptvboss-release/releases/latest) — a full VNC desktop image and a lightweight headless (no GUI) image, each available in a stable and a beta flavor.
+This repo builds Docker images for running [IPTVBoss](https://github.com/walrusone/iptvboss-release/releases/latest):
 
-It also includes an experimental browser-session image (`Dockerfile.xpra`) based on the same jlesage GUI stack used by projects like docker-filebot (noVNC + VNC), so IPTVBoss can be used from a browser with more reliable input behavior.
+- VNC desktop images (stable + beta)
+- Headless XC images (stable + beta)
+- Xpra browser-window images (stable + beta)
 
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 - It includes the option to configure Cronitor to monitor the local cron jobs.
@@ -16,17 +18,27 @@ It also includes an experimental browser-session image (`Dockerfile.xpra`) based
 | VNC — Beta | Same as above, tracks a beta IPTVBoss release | [docs/vnc-beta.md](docs/vnc-beta.md) |
 | Headless — Stable | XC server + cron only, no GUI | [docs/headless-stable.md](docs/headless-stable.md) |
 | Headless — Beta | Same as above, tracks a beta IPTVBoss release | [docs/headless-beta.md](docs/headless-beta.md) |
-| Browser session (Web GUI) | Runs IPTVBoss via jlesage baseimage web GUI (noVNC + VNC) | [Dockerfile.xpra](Dockerfile.xpra) |
-| Cronitor integration | Optional cron job monitoring, applies to all four images | [docs/cronitor.md](docs/cronitor.md) |
+| Xpra — Stable | Browser access to IPTVBoss app windows over Xpra HTML5 | [docs/xpra-stable.md](docs/xpra-stable.md) |
+| Xpra — Beta | Same Xpra setup, tracks a beta IPTVBoss release | [docs/xpra-beta.md](docs/xpra-beta.md) |
+| Cronitor integration | Optional cron job monitoring, applies to all six images | [docs/cronitor.md](docs/cronitor.md) |
 
-## Browser image quickstart (Web GUI)
+## Xpra image quickstart (Web GUI)
+
+Xpra publishes IPTVBoss app windows directly in the browser.
+
+Why this image exists:
+
+- The older VNC base stack has been harder to maintain because upstream updates have been slow.
+- Keeping that stack running required manual Debian repository workarounds during updates.
+- Running a full XFCE desktop just to launch IPTVBoss adds extra overhead.
+- Xpra gives a lighter browser GUI path focused on IPTVBoss + basic helper apps like Terminal.
 
 Build stable:
 
 ```bash
 docker build -f Dockerfile.xpra \
   --build-arg LATEST_TAG=$(cat release) \
-  -t ghcr.io/groenator/iptvboss-xpra:stable .
+  -t ghcr.io/groenator/iptvboss-xpra-stable:latest .
 ```
 
 Build beta:
@@ -34,26 +46,28 @@ Build beta:
 ```bash
 docker build -f Dockerfile.xpra \
   --build-arg BETA_TAG=$(cat beta-release) \
-  -t ghcr.io/groenator/iptvboss-xpra:beta .
+  -t ghcr.io/groenator/iptvboss-xpra-beta:latest .
 ```
 
 Run:
 
 ```bash
-docker run --rm -p 5800:5800 -p 5900:5900 \
-  -e USER_ID=1000 -e GROUP_ID=1000 \
+docker run --rm -p 5454:5454 \
+  -e PUID=1000 -e PGID=1000 \
   -e CRON_SCHEDULE="0 0 * * *" \
   -e CRONITOR_API_KEY="<your_cronitor_api_key>" \
   -e CRONITOR_SCHEDULE_NAME="My IPTVBoss Job" \
-  ghcr.io/groenator/iptvboss-xpra:stable
+  -v <your-local-volume>:/config \
+  ghcr.io/groenator/iptvboss-xpra-stable:latest
 ```
 
-Open `http://localhost:5800` in your browser.
+Open `http://localhost:5454` in your browser.
 
-The web terminal is enabled by default for this image (`WEB_TERMINAL=1`), so you can inspect cron state without a desktop terminal:
+In the Xpra top menu, use **Applications** to launch IPTVBoss and Terminal. IPTVBoss is configured to launch on client connect so window placement matches your actual browser display.
+
+Use a terminal in the Xpra session (or `docker exec`) to inspect cron state:
 
 ```bash
-# from host
 docker exec -it iptvboss-xpra sh -lc 'crontab -u app -l; ps -ef | grep cron | grep -v grep; tail -n 50 /config/log/cron.log'
 ```
 
@@ -90,7 +104,8 @@ The VNC image exposes a VNC server and noVNC web client with only a simple passw
 - IPTVBoss application pre-installed.
 - XC Server starting on boot only when setting the `XC_SERVER=true` variable, otherwise it won't start.
 - Run the container as a non-root user with the desired `PUID` and `PGID` set up.
-- Pre-configured VNC server with a default password (VNC image only). Override via environment variables — see [docs/vnc-stable.md](docs/vnc-stable.md).
+- Pre-configured VNC server with a default password (VNC images only). Override via environment variables — see [docs/vnc-stable.md](docs/vnc-stable.md).
+- Xpra browser-window images for lightweight GUI access without a full desktop — see [docs/xpra-stable.md](docs/xpra-stable.md).
 - Automatically configuring the cron job for updating the EPG.
 - Cronitor.io integration for monitoring the cron job (optional).
 - rclone support to sync IPTVBoss data to a cloud storage provider (VNC image only).

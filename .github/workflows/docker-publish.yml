@@ -98,7 +98,7 @@ jobs:
               beta-release)
                 BETA=true
                 ;;
-              Dockerfile|Dockerfile.headless|cronitor.py|entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
+              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
                 STABLE=true
                 BETA=true
                 ;;
@@ -123,6 +123,13 @@ jobs:
                   dockerfile: "Dockerfile.headless",
                   version_file: "release",
                   build_arg: "LATEST_TAG"
+                },
+                {
+                  id: "xpra-stable",
+                  image: "ghcr.io/groenator/iptvboss-xpra-stable",
+                  dockerfile: "Dockerfile.xpra",
+                  version_file: "release",
+                  build_arg: "LATEST_TAG"
                 }
               else empty end,
               if $beta then
@@ -137,6 +144,13 @@ jobs:
                   id: "headless-beta",
                   image: "ghcr.io/groenator/iptvboss-docker-headless-beta",
                   dockerfile: "Dockerfile.headless",
+                  version_file: "beta-release",
+                  build_arg: "BETA_TAG"
+                },
+                {
+                  id: "xpra-beta",
+                  image: "ghcr.io/groenator/iptvboss-xpra-beta",
+                  dockerfile: "Dockerfile.xpra",
                   version_file: "beta-release",
                   build_arg: "BETA_TAG"
                 }

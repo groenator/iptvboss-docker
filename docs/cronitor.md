@@ -1,6 +1,6 @@
 # Cronitor Integration (Optional)
 
-Applies to all four image variants ([VNC stable](vnc-stable.md), [VNC beta](vnc-beta.md), [Headless stable](headless-stable.md), [Headless beta](headless-beta.md)).
+Applies to all six image variants ([VNC stable](vnc-stable.md), [VNC beta](vnc-beta.md), [Headless stable](headless-stable.md), [Headless beta](headless-beta.md), [Xpra stable](xpra-stable.md), [Xpra beta](xpra-beta.md)).
 
 Prerequisites:
 
