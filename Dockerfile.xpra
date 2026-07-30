@@ -79,11 +79,11 @@ RUN useradd -m -s /bin/bash app
 COPY configure_cron_schedule.sh /usr/local/bin/configure_cron_schedule.sh
 COPY cronitor.py /usr/local/bin/cronitor.py
 RUN chmod +x /usr/local/bin/configure_cron_schedule.sh /usr/local/bin/cronitor.py
-RUN mkdir -m 700 -p /config/log && chown -R app:app /config
+RUN mkdir -m 700 -p /headless/IPTVBoss/log && chown -R app:app /headless/IPTVBoss
 
-# Point the shared cron script at /config instead of its /headless defaults
-ENV CRON_FILE="/config/iptvboss-cron"
-ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /config/log/cron.log 2>&1"
+# Point the shared cron script at the same persistent path used by other images
+ENV CRON_FILE="/headless/IPTVBoss/iptvboss-cron"
+ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /headless/IPTVBoss/log/cron.log 2>&1"
 
 COPY xpra-entrypoint.sh /opt/xpra-entrypoint.sh
 RUN chmod +x /opt/xpra-entrypoint.sh
@@ -93,6 +93,6 @@ ENV XPRA_BIND="0.0.0.0"
 ENV XPRA_PORT="5454"
 EXPOSE $XPRA_PORT
 
-VOLUME ["/config"]
+VOLUME ["/headless/IPTVBoss"]
 
 ENTRYPOINT ["/opt/xpra-entrypoint.sh"]

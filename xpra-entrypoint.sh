@@ -7,15 +7,15 @@ if [ "$(id -u)" = "0" ]; then
         echo "Setting app user and group id to ${PUID} and ${PGID}..."
         groupmod -o -g "${PGID}" app
         usermod -o -u "${PUID}" app
-        chown -R "${PUID}:${PGID}" /config
+        chown -R "${PUID}:${PGID}" /headless/IPTVBoss
     fi
 
     echo "Starting the cron daemon"
     cron
 
-    crontab -u app /config/iptvboss-cron 2>/dev/null || true
-    touch /config/log/cron.log
-    chown app:app /config/log/cron.log
+    crontab -u app /headless/IPTVBoss/iptvboss-cron 2>/dev/null || true
+    touch /headless/IPTVBoss/log/cron.log
+    chown app:app /headless/IPTVBoss/log/cron.log
 
     exec gosu app "$BASH_SOURCE" "$@"
 fi

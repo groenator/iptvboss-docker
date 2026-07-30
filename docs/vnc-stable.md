@@ -6,6 +6,7 @@ Full desktop VNC image built from [`Dockerfile`](../Dockerfile), based on `conso
 
 - Image: `ghcr.io/groenator/iptvboss-docker:latest`
 - Ports: `5901` (VNC client), `6901` (noVNC web client), `8001` (XC server, optional)
+- Data volume: `/headless/IPTVBoss`
 
 ## Docker Compose (preferred way)
 
@@ -16,17 +17,20 @@ Full desktop VNC image built from [`Dockerfile`](../Dockerfile), based on `conso
 - *Scheduling mode 1: use container-managed cron by setting `CRON_SCHEDULE`.*
 - *Scheduling mode 2: use IPTVBoss internal scheduling by leaving `CRON_SCHEDULE` unset.*
 - *Cronitor only monitors scheduling mode 1 (container cron), not IPTVBoss internal scheduling.*
+- *`CRONITOR_API_KEY` and `CRONITOR_SCHEDULE_NAME` are optional and only needed if you want Cronitor monitoring of container-managed cron.*
 - *To use XC server expose port 8001 and set `XC_SERVER=true` variable. If you don't need it, remove the port and variable. Access the XC server via your browser at `http://<your-machine-ip>:8001`.*
 
 ```yaml
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest # The Image has support for both ARM and x86 devices.
+    image: ghcr.io/groenator/iptvboss-docker:<version> # The Image has support for both ARM and x86 devices.
     environment:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
       TZ: "US/Eastern" # Set the timezone for the container.
       CRON_SCHEDULE: "0 0 * * *" # Optional: set only when using container-managed cron scheduling.
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" # Optional: required only for Cronitor monitoring.
+      CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job" # Optional: custom Cronitor monitor name.
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
       - 8001:8001 # Used by XC Server
@@ -53,6 +57,8 @@ docker run -it -p 6911:6901 -p 8001:8001 \
     -v <your-local-volume>:/headless/IPTVBoss \
     -e PUID=1000 -e PGID=1000 \
     -e CRON_SCHEDULE="* * * * *" \
+    -e CRONITOR_API_KEY="<your_cronitor_api_key>" \
+    -e CRONITOR_SCHEDULE_NAME="My IPTVBoss Job" \
     -e TZ=US/Eastern -e XC_SERVER=true \
     ghcr.io/groenator/iptvboss-docker:latest
 ```

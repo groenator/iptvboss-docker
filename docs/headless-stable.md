@@ -4,8 +4,9 @@
 
 `Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
 
-- Built locally from [`Dockerfile.headless`](../Dockerfile.headless) (no pre-built registry image — build it yourself with the `LATEST_TAG` build arg)
+- Image: `ghcr.io/groenator/iptvboss-docker-headless-stable:latest`
 - Ports: `8001` (XC server) only — there are no VNC ports for this image
+- Data volume: `/headless/IPTVBoss`
 
 **Note:**
 
@@ -26,20 +27,20 @@ docker build -f Dockerfile.headless \
 ```yaml
 services:
   iptvboss-headless:
-    build:
-      context: .
-      dockerfile: Dockerfile.headless
-      args:
-        LATEST_TAG: <iptvboss-release-tag>
+    image: ghcr.io/groenator/iptvboss-docker-headless-stable:<version> # The image has support for both ARM and x86 devices.
     environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "US/Eastern"
-      CRON_SCHEDULE: "0 0 * * *"
+      PUID: "1000" # Set the user ID for the container.
+      PGID: "1000" # Set the group ID for the container.
+      TZ: "US/Eastern" # Set the timezone for the container.
+      CRON_SCHEDULE: "0 0 * * *" # Optional: set only when using container-managed cron scheduling.
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" # Optional: required only for Cronitor monitoring.
+      CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job" # Optional: custom Cronitor monitor name.
     ports:
-      - 8001:8001 # Used by XC Server
+      - 8001:8001 # Used by XC Server.
     volumes:
-      - <local_volume>:/headless/IPTVBoss
+    # Replace <local_volume> with the local directory where you want to store IPTVBoss data.
+    # Based on the PUID and PGID environment variables the folder permissions are set at runtime.
+    - <local_volume>:/headless/IPTVBoss
 ```
 
 ```bash
@@ -53,9 +54,11 @@ docker run -it -p 8001:8001 \
     --name iptvboss-headless \
     -e PUID=1000 -e PGID=1000 \
     -e CRON_SCHEDULE="0 0 * * *" \
+    -e CRONITOR_API_KEY="<your_cronitor_api_key>" \
+    -e CRONITOR_SCHEDULE_NAME="My IPTVBoss Job" \
     -e TZ=US/Eastern \
     -v <your-local-volume>:/headless/IPTVBoss \
-    iptvboss-headless
+  ghcr.io/groenator/iptvboss-docker-headless-stable:latest
 ```
 
 Access the XC server at `http://<your-machine-ip>:8001`.

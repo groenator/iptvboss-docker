@@ -4,9 +4,9 @@ The Xpra stable image runs IPTVBoss in a browser using Xpra HTML5 windows (not a
 
 `Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
 
-- Image: ghcr.io/groenator/iptvboss-xpra-stable:latest
-- Port: 5454 (Xpra WebSocket / HTML5 client)
-- Data volume: /config
+- Image: `ghcr.io/groenator/iptvboss-xpra-stable:latest`
+- Ports: `5454` (Xpra WebSocket / HTML5 client)
+- Data volume: `/headless/IPTVBoss`
 
 ## Why this image exists
 
@@ -24,18 +24,20 @@ Use `CRON_SCHEDULE` only for container-managed cron scheduling. If you use IPTVB
 ```yaml
 services:
   iptvboss-xpra:
-    image: ghcr.io/groenator/iptvboss-xpra-stable:latest
+    image: ghcr.io/groenator/iptvboss-xpra-stable:<version> # The image has support for both ARM and x86 devices.
     environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "US/Eastern"
-      CRON_SCHEDULE: "0 0 * * *"
-      CRONITOR_API_KEY: "<your_cronitor_api_key>"
-      CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job"
+      PUID: "1000" # Set the user ID for the container.
+      PGID: "1000" # Set the group ID for the container.
+      TZ: "US/Eastern" # Set the timezone for the container.
+      CRON_SCHEDULE: "0 0 * * *" # Optional: set only when using container-managed cron scheduling.
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" # Optional: required only for Cronitor monitoring.
+      CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job" # Optional: custom Cronitor monitor name.
     ports:
-      - 5454:5454
+    - 5454:5454 # Used by Xpra WebSocket / HTML5 client.
     volumes:
-      - <local_volume>:/config
+    # Replace <local_volume> with the local directory where you want to store IPTVBoss data.
+    # Based on the PUID and PGID environment variables the folder permissions are set at runtime.
+    - <local_volume>:/headless/IPTVBoss
 ```
 
 Start:
@@ -57,7 +59,7 @@ docker run -it --rm \
     -e CRON_SCHEDULE="0 0 * * *" \
     -e CRONITOR_API_KEY="<your_cronitor_api_key>" \
     -e CRONITOR_SCHEDULE_NAME="My IPTVBoss Job" \
-    -v <your-local-volume>:/config \
+    -v <your-local-volume>:/headless/IPTVBoss \
     ghcr.io/groenator/iptvboss-xpra-stable:latest
 ```
 
