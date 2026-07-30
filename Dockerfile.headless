@@ -19,7 +19,7 @@ RUN apt-get update -y && apt-get upgrade -y
 # Install dependencies needed to install iptvboss
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev libsndfile1-dev \
-    python3 python3-pip python3-requests gosu \
+    python3 python3-pip python3-requests gosu rclone \
     libgtk2.0-0t64 libgtk-3-0t64 libgl1 libasound2t64 libxtst6  \
     libavformat-extra libavcodec-extra* libgdk-pixbuf2.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*

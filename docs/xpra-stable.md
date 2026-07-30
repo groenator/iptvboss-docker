@@ -2,6 +2,8 @@
 
 The Xpra stable image runs IPTVBoss in a browser using Xpra HTML5 windows (not a full remote desktop).
 
+`Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
+
 - Image: ghcr.io/groenator/iptvboss-xpra-stable:latest
 - Port: 5454 (Xpra WebSocket / HTML5 client)
 - Data volume: /config
@@ -14,6 +16,10 @@ The Xpra stable image runs IPTVBoss in a browser using Xpra HTML5 windows (not a
 - This Xpra image keeps GUI access simple and lightweight: browser window + IPTVBoss + helper apps.
 
 ## Docker Compose
+
+Cronitor variables are optional. Include them only if you want Cronitor monitoring.
+Cronitor is used to monitor cron job runs and alert on failures. To enable it, create an account at [Cronitor.io](https://cronitor.io) and use your API key.
+Use `CRON_SCHEDULE` only for container-managed cron scheduling. If you use IPTVBoss internal scheduling instead, leave `CRON_SCHEDULE` unset; Cronitor cannot monitor IPTVBoss internal scheduling.
 
 ```yaml
 services:
@@ -40,6 +46,8 @@ docker-compose up -d
 
 ## Docker CLI
 
+Cronitor variables are optional. Remove them if you do not use Cronitor.
+
 ```bash
 docker run -it --rm \
     --name iptvboss-xpra \
@@ -53,9 +61,11 @@ docker run -it --rm \
     ghcr.io/groenator/iptvboss-xpra-stable:latest
 ```
 
-Open `http://your-host-ip:5454` in your browser.
+## Access Xpra and launch IPTVBoss
 
-In the Xpra top menu, use Applications to launch IPTVBoss and Terminal.
+1. Open `http://your-host-ip:5454` in your browser.
+2. In the Xpra top menu, click Applications -> IPTVBoss.
+3. If needed, open Applications -> Terminal for shell access.
 
 ## Build locally
 

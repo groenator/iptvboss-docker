@@ -32,6 +32,7 @@ RUN set -eux \
         zenity \
         xdg-utils \
         trash-cli \
+        rclone \
         desktop-file-utils \
         nautilus \
         gedit \

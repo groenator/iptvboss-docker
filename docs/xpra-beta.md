@@ -17,6 +17,9 @@ This image uses the same Xpra setup as [Xpra stable](xpra-stable.md), but tracks
 
 ## Docker Compose
 
+Cronitor variables are optional. Include them only if you want Cronitor monitoring.
+Cronitor is used to monitor cron job runs and alert on failures. To enable it, create an account at [Cronitor.io](https://cronitor.io) and use your API key.
+
 ```yaml
 services:
   iptvboss-xpra-beta:
@@ -26,6 +29,7 @@ services:
       PGID: "1000"
       TZ: "US/Eastern"
       CRON_SCHEDULE: "0 0 * * *"
+      # Optional: only set these if you use Cronitor monitoring.
       CRONITOR_API_KEY: "<your_cronitor_api_key>"
       CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job"
     ports:
@@ -42,6 +46,8 @@ docker-compose up -d
 
 ## Docker CLI
 
+Cronitor variables are optional. Remove them if you do not use Cronitor.
+
 ```bash
 docker run -it --rm \
     --name iptvboss-xpra-beta \
@@ -55,7 +61,11 @@ docker run -it --rm \
     ghcr.io/groenator/iptvboss-xpra-beta:version-tag
 ```
 
-Open `http://your-host-ip:5454` in your browser.
+## Access Xpra and launch IPTVBoss
+
+1. Open `http://your-host-ip:5454` in your browser.
+2. In the Xpra top menu, click Applications -> IPTVBoss.
+3. If needed, open Applications -> Terminal for shell access.
 
 ## Build locally
 

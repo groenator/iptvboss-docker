@@ -2,12 +2,17 @@
 
 Applies to all six image variants ([VNC stable](vnc-stable.md), [VNC beta](vnc-beta.md), [Headless stable](headless-stable.md), [Headless beta](headless-beta.md), [Xpra stable](xpra-stable.md), [Xpra beta](xpra-beta.md)).
 
+Important:
+
+- This integration only monitors the container-managed cron job configured with `CRON_SCHEDULE`.
+- If you use IPTVBoss internal scheduling instead, Cronitor will not see or monitor those runs.
+
 Prerequisites:
 
 - A Cronitor account. Sign up at [Cronitor.io](https://cronitor.io).
 - A Cronitor API key.
 
-To enable Cronitor monitoring, set the `CRONITOR_API_KEY` environment variable to your Cronitor API key. Set the `CRONITOR_SCHEDULE_NAME` environment variable to a custom name for your Cronitor job.
+To enable Cronitor monitoring, set the `CRONITOR_API_KEY` environment variable to your Cronitor API key, set `CRONITOR_SCHEDULE_NAME` to a custom name, and set `CRON_SCHEDULE` for the container cron job.
 
 Run it using docker-compose:
 

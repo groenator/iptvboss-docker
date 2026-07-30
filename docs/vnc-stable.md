@@ -2,6 +2,8 @@
 
 Full desktop VNC image built from [`Dockerfile`](../Dockerfile), based on `consol/debian-xfce-vnc`. Gives you a full XFCE desktop with the IPTVBoss application, Firefox and Chromium pre-installed, reachable via any VNC client or a browser (noVNC).
 
+`Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
+
 - Image: `ghcr.io/groenator/iptvboss-docker:latest`
 - Ports: `5901` (VNC client), `6901` (noVNC web client), `8001` (XC server, optional)
 
@@ -11,7 +13,9 @@ Full desktop VNC image built from [`Dockerfile`](../Dockerfile), based on `conso
 
 - *The volume is mounted to the `/headless/IPTVBoss` directory in the container.*
 - *If the volume mounted doesn't have the correct permissions IPTVBoss will NOT start. Before mounting the volume make sure the permissions on the local folder are set correctly.*
-- *A cron job is set up to perform periodic EPG update tasks. Change the cron schedule by setting the `CRON_SCHEDULE` environment variable with your own schedule.*
+- *Scheduling mode 1: use container-managed cron by setting `CRON_SCHEDULE`.*
+- *Scheduling mode 2: use IPTVBoss internal scheduling by leaving `CRON_SCHEDULE` unset.*
+- *Cronitor only monitors scheduling mode 1 (container cron), not IPTVBoss internal scheduling.*
 - *To use XC server expose port 8001 and set `XC_SERVER=true` variable. If you don't need it, remove the port and variable. Access the XC server via your browser at `http://<your-machine-ip>:8001`.*
 
 ```yaml
@@ -22,7 +26,7 @@ services:
       PUID: "1000" # Set the user ID for the container.
       PGID: "1000" # Set the group ID for the container.
       TZ: "US/Eastern" # Set the timezone for the container.
-      CRON_SCHEDULE: "0 0 * * *" # Set the cron schedule for the cron job that will update the EPG data.
+      CRON_SCHEDULE: "0 0 * * *" # Optional: set only when using container-managed cron scheduling.
       XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
       - 8001:8001 # Used by XC Server

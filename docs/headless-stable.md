@@ -2,12 +2,15 @@
 
 `Dockerfile.headless` builds a lightweight, Ubuntu-based image that runs only the IPTVBoss XC server and its cron-driven EPG update job — there is no VNC server, no desktop environment, and no GUI. Use this variant if you only need the XC server API/stream endpoints and don't need to interact with the IPTVBoss desktop application at all.
 
+`Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
+
 - Built locally from [`Dockerfile.headless`](../Dockerfile.headless) (no pre-built registry image — build it yourself with the `LATEST_TAG` build arg)
 - Ports: `8001` (XC server) only — there are no VNC ports for this image
 
 **Note:**
 
 - *`PUID`/`PGID`, `CRON_SCHEDULE`, `TZ`, `CRONITOR_API_KEY` and `CRONITOR_SCHEDULE_NAME` all behave the same way as the [VNC image](vnc-stable.md).*
+- *Use `CRON_SCHEDULE` only for container-managed cron scheduling. If you use IPTVBoss internal scheduling instead, leave `CRON_SCHEDULE` unset; Cronitor cannot monitor IPTVBoss internal scheduling.*
 - *The volume is still mounted to `/headless/IPTVBoss`, and the same volume-permission requirements apply — do not run the container as root, and make sure the local folder permissions match your `PUID`/`PGID`.*
 
 ## Build the image
