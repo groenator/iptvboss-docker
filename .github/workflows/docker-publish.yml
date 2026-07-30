@@ -316,7 +316,6 @@ jobs:
             type=raw,value=latest,enable=${{ github.event_name == 'push' }}
             type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.event_name == 'push' }}
             type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
-            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,enable=${{ github.event_name == 'pull_request' }}
 
       - name: Create multi-platform manifest
         shell: bash
