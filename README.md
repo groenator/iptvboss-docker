@@ -2,6 +2,8 @@
 
 This repo builds Docker images for running [IPTVBoss](https://github.com/walrusone/iptvboss-release/releases/latest) — a full VNC desktop image and a lightweight headless (no GUI) image, each available in a stable and a beta flavor.
 
+It also includes an experimental browser-session image (`Dockerfile.xpra`) based on the same jlesage GUI stack used by projects like docker-filebot (noVNC + VNC), so IPTVBoss can be used from a browser with more reliable input behavior.
+
 - IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
 - It includes the option to configure Cronitor to monitor the local cron jobs.
 - rclone is also installed in the VNC image to allow users to sync their IPTVBoss data to a cloud storage provider.
@@ -14,7 +16,46 @@ This repo builds Docker images for running [IPTVBoss](https://github.com/walruso
 | VNC — Beta | Same as above, tracks a beta IPTVBoss release | [docs/vnc-beta.md](docs/vnc-beta.md) |
 | Headless — Stable | XC server + cron only, no GUI | [docs/headless-stable.md](docs/headless-stable.md) |
 | Headless — Beta | Same as above, tracks a beta IPTVBoss release | [docs/headless-beta.md](docs/headless-beta.md) |
+| Browser session (Web GUI) | Runs IPTVBoss via jlesage baseimage web GUI (noVNC + VNC) | [Dockerfile.xpra](Dockerfile.xpra) |
 | Cronitor integration | Optional cron job monitoring, applies to all four images | [docs/cronitor.md](docs/cronitor.md) |
+
+## Browser image quickstart (Web GUI)
+
+Build stable:
+
+```bash
+docker build -f Dockerfile.xpra \
+  --build-arg LATEST_TAG=$(cat release) \
+  -t ghcr.io/groenator/iptvboss-xpra:stable .
+```
+
+Build beta:
+
+```bash
+docker build -f Dockerfile.xpra \
+  --build-arg BETA_TAG=$(cat beta-release) \
+  -t ghcr.io/groenator/iptvboss-xpra:beta .
+```
+
+Run:
+
+```bash
+docker run --rm -p 5800:5800 -p 5900:5900 \
+  -e USER_ID=1000 -e GROUP_ID=1000 \
+  -e CRON_SCHEDULE="0 0 * * *" \
+  -e CRONITOR_API_KEY="<your_cronitor_api_key>" \
+  -e CRONITOR_SCHEDULE_NAME="My IPTVBoss Job" \
+  ghcr.io/groenator/iptvboss-xpra:stable
+```
+
+Open `http://localhost:5800` in your browser.
+
+The web terminal is enabled by default for this image (`WEB_TERMINAL=1`), so you can inspect cron state without a desktop terminal:
+
+```bash
+# from host
+docker exec -it iptvboss-xpra sh -lc 'crontab -u app -l; ps -ef | grep cron | grep -v grep; tail -n 50 /config/log/cron.log'
+```
 
 ## If you are unable to connect to your cloud provider, this is likely because of
 
