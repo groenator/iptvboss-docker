@@ -7,7 +7,6 @@ if [ "$(id -u)" = "0" ]; then
         echo "Setting iptvboss user and group id to ${PUID} and ${PGID}..."
         groupmod -o -g "${PGID}" iptvboss
         usermod -o -u "${PUID}" iptvboss
-        usermod -aG audio iptvboss
         chown -R "${PUID}:${PGID}" /headless
     fi
 
