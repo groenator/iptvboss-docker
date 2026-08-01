@@ -50,12 +50,11 @@ if [ "$(id -u)" = "0" ]; then
     chown -R "${RUNTIME_UID}:${PGID:-${RUNTIME_UID}}" "/run/user/${RUNTIME_UID}" "/tmp/xdg"
     chmod 700 "/run/user/${RUNTIME_UID}"
 
-    # Configure pulseaudio clients to talk to the Xpra-managed server without
-    # trying to autospawn a conflicting daemon.
+    # Prevent pulseaudio clients from trying to autospawn a second daemon.
+    # A pulseaudio instance will be started manually before Xpra in user mode.
     mkdir -p /headless/.config/pulse
     cat > /headless/.config/pulse/client.conf <<EOF
 autospawn = no
-default-server = unix:/run/user/${RUNTIME_UID}/pulse/native
 EOF
     chown -R "${RUNTIME_UID}:${PGID:-${RUNTIME_UID}}" /headless/.config/pulse
 
@@ -68,20 +67,33 @@ fi
 
 mkdir -p /run/xpra
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native"
-export PULSE_COOKIE='/headless/.config/pulse/$PULSE_COOKIE'
 export XDG_CONFIG_HOME=/headless/.config
 export XDG_CACHE_HOME=/headless/.cache
 export HOME=/headless
 # gnome-terminal requires a UTF-8 locale.
 export LANG="${LANG:-C.UTF-8}"
 export LC_ALL="${LC_ALL:-C.UTF-8}"
+
+# Start a dedicated pulseaudio daemon for Xpra speaker forwarding.
+# We start it manually (not via "pulseaudio --start") so PULSE_SERVER can be
+# set for applications/pactl without confusing the daemon's autospawn logic.
+mkdir -p "${XDG_RUNTIME_DIR}/pulse"
+pulseaudio -n --daemonize=false --system=false --exit-idle-time=-1 \
+    --load=module-suspend-on-idle \
+    --load=module-null-sink sink_name=Xpra-Speaker sink_properties=device.description=Xpra-Speaker \
+    --load=module-null-sink sink_name=Xpra-Microphone sink_properties=device.description=Xpra-Microphone \
+    --load=module-remap-source source_name=Xpra-Mic-Source source_properties=device.description=Xpra-Mic-Source master=Xpra-Microphone.monitor channels=1 \
+    --load=module-native-protocol-unix socket="${XDG_RUNTIME_DIR}/pulse/native" auth-cookie-enabled=0 \
+    --disable-shm=yes &
+sleep 1
+export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native"
+
 exec xpra start \
     --daemon=no \
     --bind-ws=0.0.0.0:5454 \
     --resize-display=yes \
     --speaker=on \
     --microphone=off \
-    --pulseaudio=yes \
+    --pulseaudio=no \
     --start-child-on-connect="sh -lc 'pgrep -f /usr/lib/iptvboss/bin/iptvboss >/dev/null || exec /usr/bin/iptvboss'" \
     :100
