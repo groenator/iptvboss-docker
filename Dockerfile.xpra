@@ -1,12 +1,19 @@
 FROM ubuntu:24.04
 
+# Set locale to avoid warnings
+ENV LC_ALL=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the environment variables for the build
 ARG LATEST_TAG
 ARG BETA_TAG
 
 ENV XPRA_UBUNTU_RELEASE="noble"
-ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR /tmp
+USER 0
+
+# Set the working directory
+WORKDIR /headless
 
 # Install xpra and desktop environment
 RUN set -eux \
@@ -45,8 +52,16 @@ RUN set -eux \
         libgtk-3-0t64 \
         libgtk2.0-0t64 \
         libxtst6 \
+        libxkbcommon-x11-0 \
+        pulseaudio \
+        dbus \
         ubuntu-wallpapers-noble \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy the Python script into the container
+RUN mkdir -p /headless/scripts
+COPY cronitor.py /headless/scripts/
+COPY configure_cron_schedule.sh /headless/scripts/
 
 # Install IPTVBoss
 RUN CPU=$(dpkg --print-architecture) \
@@ -72,25 +87,35 @@ RUN set -eux \
     && find /usr/share/applications -not -name '*iptvboss*' -not -name '*Terminal*' -not -name '*Nautilus*' -not -name '*gedit*' -type f -delete \
     && update-desktop-database
 
-# Create iptvboss user with home directory set to /headless (consistent with other images)
-RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
+# Create the iptvboss user at build time. The default UID is 911 and the
+# entrypoint will adjust it to the PUID/PGID supplied at runtime.
+# Remove the default 'ubuntu' user from the base image so there is no UID 1000
+# conflict when PUID=1000 is used; otherwise Xpra resolves the running UID to
+# 'ubuntu' and uses /home/ubuntu for its sockets/config.
+RUN userdel -f ubuntu 2>/dev/null || true && \
+    rm -rf /home/ubuntu && \
+    useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
+    touch /headless/iptvboss-cron && \
+    chown iptvboss:iptvboss /headless/iptvboss-cron && \
+    chmod 600 /headless/iptvboss-cron
 
-# Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
-# the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
-# entrypoint only chowns /headless when PUID/PGID are set.
-RUN mkdir -p /headless/.cache && \
-    chown iptvboss:iptvboss /headless/.cache && \
-    chmod 700 /headless/.cache
+# The base image creates /headless/.cache owned by root with mode 0700, but the
+# iptvboss user runs the app and the graphics libraries it pulls in. Mesa fails
+# to create its shader cache under $XDG_CACHE_HOME (/headless/.cache) as a
+# result. The entrypoint only chowns /headless when PUID/PGID are set, so give
+# the cache and config dirs to iptvboss at build time. This also lets Chromium,
+# dconf, ibus and the other user caches populate cleanly.
+RUN mkdir -p /headless/.cache /headless/.config && \
+    chown -R iptvboss:iptvboss /headless/.cache /headless/.config && \
+    chmod 700 /headless/.cache /headless/.config
 
 # Shared cron helper scripts (also used by Dockerfile / Dockerfile.headless)
-COPY configure_cron_schedule.sh /usr/local/bin/configure_cron_schedule.sh
-COPY cronitor.py /usr/local/bin/cronitor.py
-RUN chmod +x /usr/local/bin/configure_cron_schedule.sh /usr/local/bin/cronitor.py
-RUN mkdir -m 700 -p /headless/IPTVBoss/log && chown -R iptvboss:iptvboss /headless/IPTVBoss
+RUN chmod +x /headless/scripts/configure_cron_schedule.sh /headless/scripts/cronitor.py
+RUN mkdir -m 700 -p /headless/IPTVBoss && chown -R iptvboss:iptvboss /headless/IPTVBoss
 
 # Point the shared cron script at the same persistent path used by other images
 ENV CRON_FILE="/headless/iptvboss-cron"
-ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /headless/IPTVBoss/log/cron.log 2>&1"
+ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log 2>&1"
 
 COPY xpra-entrypoint.sh /opt/xpra-entrypoint.sh
 RUN chmod +x /opt/xpra-entrypoint.sh
