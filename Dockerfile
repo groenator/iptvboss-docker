@@ -52,16 +52,20 @@ RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     # Build the latest release
     if [ -n "$LATEST_TAG" ]; then \
         wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-        (apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb || \
-            dpkg -i --force-depends ./iptvboss_${LATEST_TAG#v}_${CPU}.deb) && \
+        if ! apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb; then \
+            dpkg -i ./iptvboss_${LATEST_TAG#v}_${CPU}.deb || true; \
+            apt-get install -f -y; \
+        fi && \
         cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-release.desktop && \
         chmod 777 /headless/Desktop/iptvboss-release.desktop; \
     fi && \
     # Build the beta version
     if [ -n "$BETA_TAG" ]; then \
         wget https://github.com/walrusone/iptvboss-beta/releases/download/${BETA_TAG#v}/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-        (apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb || \
-            dpkg -i --force-depends ./iptvboss_${BETA_TAG#v}_${CPU}.deb) && \
+        if ! apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb; then \
+            dpkg -i ./iptvboss_${BETA_TAG#v}_${CPU}.deb || true; \
+            apt-get install -f -y; \
+        fi && \
         cp /usr/share/applications/io.github.walrusone.iptvboss-release.desktop /headless/Desktop/iptvboss-beta.desktop && \
         chmod 777 /headless/Desktop/iptvboss-beta.desktop; \
     fi

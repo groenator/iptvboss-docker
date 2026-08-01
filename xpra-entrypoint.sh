@@ -19,12 +19,17 @@ if [ "$(id -u)" = "0" ]; then
     # Install cronitor
     if [ -n "$CRONITOR_API_KEY" ]; then
         echo "Installing cronitor..."
-        curl -s https://cronitor.io/install-linux?sudo=1 -H "API-KEY: $CRONITOR_API_KEY" | sh > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
+        CRONITOR_INSTALLER="$(mktemp)"
+        if curl --fail --silent --show-error --location \
+            -H "API-KEY: $CRONITOR_API_KEY" \
+            "https://cronitor.io/install-linux?sudo=1" \
+            -o "$CRONITOR_INSTALLER" && \
+            sh "$CRONITOR_INSTALLER" > /dev/null 2>&1; then
             echo "Cronitor installed successfully."
         else
             echo "Error: Cronitor installation failed." >&2
         fi
+        rm -f "$CRONITOR_INSTALLER"
     else
         echo "CRONITOR_API_KEY not set. Skipping cronitor installation."
     fi
@@ -91,7 +96,14 @@ set-default-sink Xpra-Speaker
 set-default-source Xpra-Speaker.monitor
 EOF
 pulseaudio -n --file=/headless/.config/pulse/xpra.pa --daemonize=false --system=false --exit-idle-time=-1 --disable-shm=yes &
-sleep 1
+for i in $(seq 1 20); do
+    [ -S "${XDG_RUNTIME_DIR}/pulse/native" ] && break
+    sleep 0.5
+done
+if [ ! -S "${XDG_RUNTIME_DIR}/pulse/native" ]; then
+    echo "Error: PulseAudio socket not ready at ${XDG_RUNTIME_DIR}/pulse/native" >&2
+    exit 1
+fi
 export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native"
 
 exec xpra start \
