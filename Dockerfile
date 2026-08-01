@@ -50,6 +50,14 @@ COPY install_iptvboss.sh /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
+    # Debian trixie renamed libgdk-pixbuf2.0-0 to libgdk-pixbuf-2.0-0.
+    # iptvboss still declares a dependency on the old name, so install a
+    # minimal dummy package to satisfy it (the real library is already present).
+    mkdir -p /tmp/fake-libgdk/DEBIAN && \
+    printf 'Package: libgdk-pixbuf2.0-0\nVersion: 999\nArchitecture: all\nMaintainer: dummy\nDescription: Compatibility stub for iptvboss\n' \
+        > /tmp/fake-libgdk/DEBIAN/control && \
+    dpkg-deb --build /tmp/fake-libgdk /tmp/libgdk-pixbuf2.0-0_999_all.deb && \
+    dpkg -i /tmp/libgdk-pixbuf2.0-0_999_all.deb && \
     # Build the latest release
     if [ -n "$LATEST_TAG" ]; then \
         sh /headless/scripts/install_iptvboss.sh stable "$LATEST_TAG" "$CPU" && \
