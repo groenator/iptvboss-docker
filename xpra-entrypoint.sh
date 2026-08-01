@@ -13,6 +13,9 @@ if [ "$(id -u)" = "0" ]; then
         echo "PUID or PGID not set. Using default values."
     fi
 
+    # Ensure the iptvboss user has access to audio devices for Xpra forwarding.
+    usermod -aG audio iptvboss 2>/dev/null || true
+
     # Install cronitor
     if [ -n "$CRONITOR_API_KEY" ]; then
         echo "Installing cronitor..."
@@ -78,13 +81,16 @@ export LC_ALL="${LC_ALL:-C.UTF-8}"
 # We start it manually (not via "pulseaudio --start") so PULSE_SERVER can be
 # set for applications/pactl without confusing the daemon's autospawn logic.
 mkdir -p "${XDG_RUNTIME_DIR}/pulse"
-pulseaudio -n --daemonize=false --system=false --exit-idle-time=-1 \
-    --load=module-suspend-on-idle \
-    --load=module-null-sink sink_name=Xpra-Speaker sink_properties=device.description=Xpra-Speaker \
-    --load=module-null-sink sink_name=Xpra-Microphone sink_properties=device.description=Xpra-Microphone \
-    --load=module-remap-source source_name=Xpra-Mic-Source source_properties=device.description=Xpra-Mic-Source master=Xpra-Microphone.monitor channels=1 \
-    --load=module-native-protocol-unix socket="${XDG_RUNTIME_DIR}/pulse/native" auth-cookie-enabled=0 \
-    --disable-shm=yes &
+cat > /headless/.config/pulse/xpra.pa <<EOF
+load-module module-suspend-on-idle
+load-module module-null-sink sink_name=Xpra-Speaker sink_properties=device.description=Xpra-Speaker
+load-module module-null-sink sink_name=Xpra-Microphone sink_properties=device.description=Xpra-Microphone
+load-module module-remap-source source_name=Xpra-Mic-Source source_properties=device.description=Xpra-Mic-Source master=Xpra-Microphone.monitor channels=1
+load-module module-native-protocol-unix socket=${XDG_RUNTIME_DIR}/pulse/native auth-cookie-enabled=0
+set-default-sink Xpra-Speaker
+set-default-source Xpra-Speaker.monitor
+EOF
+pulseaudio -n --file=/headless/.config/pulse/xpra.pa --daemonize=false --system=false --exit-idle-time=-1 --disable-shm=yes &
 sleep 1
 export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native"
 
@@ -95,5 +101,6 @@ exec xpra start \
     --speaker=on \
     --microphone=off \
     --pulseaudio=no \
+    -d sound,gstreamer \
     --start-child-on-connect="sh -lc 'pgrep -f /usr/lib/iptvboss/bin/iptvboss >/dev/null || exec /usr/bin/iptvboss'" \
     :100

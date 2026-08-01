@@ -97,7 +97,7 @@ RUN set -eux \
 # 'ubuntu' and uses /home/ubuntu for its sockets/config.
 RUN userdel -f ubuntu 2>/dev/null || true && \
     rm -rf /home/ubuntu && \
-    useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
+    useradd -u 911 -U -G audio -d /headless -s /bin/bash iptvboss && \
     touch /headless/iptvboss-cron && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
