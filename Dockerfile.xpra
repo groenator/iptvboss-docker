@@ -42,7 +42,7 @@ RUN set -eux \
     && test "$(gpg --show-keys --with-colons /usr/share/keyrings/xpra.asc | awk -F: '$1=="fpr" {print $10; exit}')" = "${XPRA_KEY_FINGERPRINT}" \
     && curl --fail --silent --show-error --location \
         -o /etc/apt/sources.list.d/xpra.sources \
-        https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/${XPRA_UBUNTU_RELEASE}/xpra.sources \
+        https://raw.githubusercontent.com/Xpra-org/xpra/44af22e9239985e4b41b4b315b76bd490f733808/packaging/repos/${XPRA_UBUNTU_RELEASE}/xpra.sources \
     && echo "${XPRA_SOURCES_SHA256}  /etc/apt/sources.list.d/xpra.sources" | sha256sum -c - \
     && apt-get update \
     && apt-get install -y \

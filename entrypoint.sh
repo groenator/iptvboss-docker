@@ -106,8 +106,10 @@ fi
         cp /headless/IPTVBoss/gvfs-metadata-home /headless/.local/share/gvfs-metadata/home
         chmod 600 /headless/.local/share/gvfs-metadata/home
     fi
-    chown -R ${PUID}:${PGID} /headless/.config
-    chown -R ${PUID}:${PGID} /headless/.local
+    if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
+        chown -R "${PUID}:${PGID}" /headless/.config
+        chown -R "${PUID}:${PGID}" /headless/.local
+    fi
 
     # Keep that trust checksum backed up to persistent storage so that once a
     # desktop launcher is manually marked "Mark As Secure And Launch", the
