@@ -48,6 +48,8 @@ RUN set -eux \
         libasound2t64 \
         libavcodec-extra \
         libavformat-extra \
+        vlc \
+        libvlc-dev \
         libgdk-pixbuf2.0-0 \
         libgl1 \
         libgtk-3-0t64 \
