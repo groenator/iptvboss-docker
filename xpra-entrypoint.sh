@@ -43,6 +43,22 @@ if [ "$(id -u)" = "0" ]; then
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
 
+    # Ensure the runtime directory is owned by the target user so pulseaudio's
+    # pactl client can query devices (XDG_RUNTIME_DIR must be user-owned).
+    RUNTIME_UID="${PUID:-911}"
+    mkdir -p "/run/user/${RUNTIME_UID}" "/tmp/xdg/xpra"
+    chown -R "${RUNTIME_UID}:${PGID:-${RUNTIME_UID}}" "/run/user/${RUNTIME_UID}" "/tmp/xdg"
+    chmod 700 "/run/user/${RUNTIME_UID}"
+
+    # Configure pulseaudio clients to talk to the Xpra-managed server without
+    # trying to autospawn a conflicting daemon.
+    mkdir -p /headless/.config/pulse
+    cat > /headless/.config/pulse/client.conf <<EOF
+autospawn = no
+default-server = unix:/run/user/${RUNTIME_UID}/pulse/native
+EOF
+    chown -R "${RUNTIME_UID}:${PGID:-${RUNTIME_UID}}" /headless/.config/pulse
+
     # Change to iptvboss user for user-level commands
     exec gosu iptvboss "$BASH_SOURCE" "$@"
 fi
@@ -51,7 +67,9 @@ fi
 /headless/scripts/configure_cron_schedule.sh
 
 mkdir -p /run/xpra
-export XDG_RUNTIME_DIR=/tmp
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native"
+export PULSE_COOKIE='/headless/.config/pulse/$PULSE_COOKIE'
 export XDG_CONFIG_HOME=/headless/.config
 export XDG_CACHE_HOME=/headless/.cache
 export HOME=/headless
