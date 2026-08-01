@@ -6,9 +6,7 @@ This repo builds Docker images for running [IPTVBoss](https://github.com/walruso
 - Headless XC images (stable + beta)
 - Xpra browser-window images (stable + beta)
 
-- IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. You can customize its configuration and settings.
-- It includes the option to configure Cronitor to monitor the local cron jobs.
-- rclone is installed in the VNC, Headless, and Xpra images to allow users to sync their IPTVBoss data to a cloud storage provider.
+IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. rclone is included in the VNC, Headless, and Xpra images to sync IPTVBoss data to a cloud storage provider, and Cronitor can optionally monitor the container-managed cron job.
 
 ## Prerequisites
 
@@ -17,24 +15,9 @@ This repo builds Docker images for running [IPTVBoss](https://github.com/walruso
 - A Linux or Mac computer to build the Docker image. I don't use Windows, for Windows I recommend using WSL2.
 - Cronitor.io account and API key (optional) to monitor your cron jobs.
 
-## Features
-
-- Debian-based VNC image, Ubuntu-based headless image.
-- IPTVBoss application pre-installed.
-- XC Server starting on boot only when setting the `XC_SERVER=true` variable, otherwise it won't start.
-- Run the container as a non-root user with the desired `PUID` and `PGID` set up.
-- Pre-configured VNC server with a default password (VNC images only). Override via environment variables — see the [VNC Stable wiki page](https://github.com/groenator/iptvboss-docker/wiki/VNC-Stable).
-- Xpra browser-window images for lightweight GUI access without a full desktop — see the [Xpra Stable wiki page](https://github.com/groenator/iptvboss-docker/wiki/Xpra-Stable).
-- Optional container-managed cron scheduling for EPG updates via `CRON_SCHEDULE`.
-- If you use IPTVBoss internal scheduling instead, leave `CRON_SCHEDULE` unset.
-- Cronitor monitors container-managed cron jobs only; it does not monitor IPTVBoss internal scheduling.
-- Cronitor.io integration for monitoring the cron job (optional).
-- rclone support to sync IPTVBoss data to a cloud storage provider (VNC, Headless, and Xpra images).
-- ARM support for Raspberry Pi and other ARM devices.
-
 ## Documentation
 
-Full setup, build, run, access, and troubleshooting docs live on the [project wiki](https://github.com/groenator/iptvboss-docker/wiki):
+Full feature list, per-image setup/build/run instructions, connection troubleshooting, and VPS security guidance live on the **[project wiki](https://github.com/groenator/iptvboss-docker/wiki)** — start at the [Home](https://github.com/groenator/iptvboss-docker/wiki/Home) page.
 
 | Image | Description | Docs |
 | --- | --- | --- |
@@ -45,32 +28,7 @@ Full setup, build, run, access, and troubleshooting docs live on the [project wi
 | Xpra — Stable | Browser access to IPTVBoss app windows over Xpra HTML5 | [Xpra Stable](https://github.com/groenator/iptvboss-docker/wiki/Xpra-Stable) |
 | Xpra — Beta | Same Xpra setup, tracks a beta IPTVBoss release | [Xpra Beta](https://github.com/groenator/iptvboss-docker/wiki/Xpra-Beta) |
 | Cronitor integration | Optional cron job monitoring, applies to all six images | [Cronitor Integration](https://github.com/groenator/iptvboss-docker/wiki/Cronitor-Integration) |
-| Upcoming release | User announcement, upgrade guidance, and staff notes | [RELEASE_NOTES.md](RELEASE_NOTES.md) |
-
-## If you are unable to connect to your IPTVBoss instance, this is likely because of
-
-1. Running the container using root and not using a non-root user
-
-- DO NOT run the container using the ROOT user, it won't work.
-
-1. The container volumes are not mounted correctly, the volume permissions are incorrect
-
-- Define your own user and set the correct permissions for your volume using your user UID/GID details.
-
-## Security recommendations if running on a VPS
-
-If you are running any image variant on a VPS or another host with a public IP, do not leave application ports open to the whole internet.
-
-- VNC images expose VNC + noVNC (`5901`, `6901`) and XC (`8001`).
-- Headless images expose XC (`8001`) with no built-in authentication.
-- Xpra images expose the Xpra web/socket endpoint (`5454`), commonly used without strong edge auth by default.
-
-- Set up a firewall on the VPS (e.g. `ufw`, `iptables`, or your provider's security group/firewall) and block all inbound access by default.
-- Only allow access from trusted/known IP addresses if you need direct access to exposed ports (`5454`, `5901`, `6901`, `8001`).
-- Better yet, do not publish these ports publicly at all. Put the host on a private overlay network such as [Tailscale](https://tailscale.com/) (or WireGuard), close the ports on the public firewall entirely, and connect only through the VPN.
-- For VNC images, change the default VNC password (`VNC_PW`, see the [VNC Stable wiki page](https://github.com/groenator/iptvboss-docker/wiki/VNC-Stable)) instead of relying on the default.
-- If internet exposure is unavoidable, place a reverse proxy with TLS and authentication in front of web endpoints (noVNC/Xpra) and restrict source IPs at the firewall.
-- Keep the image and host OS up to date to pick up security patches.
+| Upcoming release | User announcement, upgrade guidance, and developer notes | [RELEASE_NOTES.md](RELEASE_NOTES.md) |
 
 ## Tasks list
 

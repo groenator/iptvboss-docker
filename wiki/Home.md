@@ -41,8 +41,7 @@ IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. rclone i
 | Xpra — Stable | Browser access to IPTVBoss app windows over Xpra HTML5 | [Xpra Stable](Xpra-Stable) |
 | Xpra — Beta | Same Xpra setup, tracks a beta IPTVBoss release | [Xpra Beta](Xpra-Beta) |
 | Cronitor integration | Optional cron job monitoring, applies to all six images | [Cronitor Integration](Cronitor-Integration) |
-
-For the upcoming release notes and upgrade guidance, see [RELEASE_NOTES.md](https://github.com/groenator/iptvboss-docker/blob/master/RELEASE_NOTES.md) in the repo.
+| User announcement, upgrade guidance, and developer notes | [RELEASE_NOTES.md](https://github.com/groenator/iptvboss-docker/blob/master/RELEASE_NOTES.md) |
 
 ## If you are unable to connect to your IPTVBoss instance
 
@@ -63,12 +62,3 @@ If you are running any image variant on a VPS or another host with a public IP, 
 - For VNC images, change the default VNC password (`VNC_PW`, see [VNC Stable](VNC-Stable)) instead of relying on the default.
 - If internet exposure is unavoidable, place a reverse proxy with TLS and authentication in front of web endpoints (noVNC/Xpra) and restrict source IPs at the firewall.
 - Keep the image and host OS up to date to pick up security patches.
-
-## Tasks list
-
-- [x] Create a Docker image with IPTVBoss running as a simple cli without GUI and VNC.
-- [x] Configure IPTVBoss XC to start on boot.
-- [x] Pushing the docker image to an actual docker registry.
-- [x] Allow user to configure the cron job with it's own schedule. At the moment the cron is configured to run every 12h.
-- [x] Start the container defining your own user.
-- [x] Creating a script to configure the cronitor jobs automatically without duplicating the job if is already available in the account.
