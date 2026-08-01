@@ -1,6 +1,6 @@
 # IPTVBoss VNC — Stable
 
-Full desktop VNC image built from [`Dockerfile`](../Dockerfile), based on `consol/debian-xfce-vnc`. Gives you a full XFCE desktop with the IPTVBoss application, Firefox and Chromium pre-installed, reachable via any VNC client or a browser (noVNC).
+Full desktop VNC image built from [`Dockerfile`](https://github.com/groenator/iptvboss-docker/blob/master/Dockerfile), based on `consol/debian-xfce-vnc`. Gives you a full XFCE desktop with the IPTVBoss application, Firefox and Chromium pre-installed, reachable via any VNC client or a browser (noVNC).
 
 `Stable` here refers to the IPTVBoss app release channel. This image tracks official non-beta IPTVBoss releases (from the `release` tag/file), not a separate "stable container" codebase.
 
@@ -128,4 +128,4 @@ The container now sets Mozilla Firefox as the default XFCE/XDG web browser when 
 
 The first time you double-click a Desktop icon (IPTVBoss, Firefox, Chromium) after a fresh volume, XFCE will show an "Untrusted application launcher" dialog. Click **Mark As Secure And Launch** once per icon — the container backs up that trust decision to your persistent volume (`/headless/IPTVBoss/gvfs-metadata-home`) every few seconds, so it survives container restarts and redeploys and you won't need to click it again.
 
-See also: [Cronitor integration](cronitor.md).
+See also: [Cronitor Integration](Cronitor-Integration).

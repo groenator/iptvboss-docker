@@ -4,7 +4,7 @@
 
 `Beta` here refers to the IPTVBoss app release channel. This image tracks official IPTVBoss beta releases (from the `beta-release` tag/file), not a separate "beta container" codebase.
 
-The beta VNC image is built from the same [`Dockerfile`](../Dockerfile) as the [stable VNC image](vnc-stable.md) — same desktop environment, same VNC/noVNC ports, same environment variables — but tracks a beta release tag of IPTVBoss instead of the latest stable release.
+The beta VNC image is built from the same [`Dockerfile`](https://github.com/groenator/iptvboss-docker/blob/master/Dockerfile) as the [stable VNC image](VNC-Stable) — same desktop environment, same VNC/noVNC ports, same environment variables — but tracks a beta release tag of IPTVBoss instead of the latest stable release.
 
 - Image: `ghcr.io/groenator/iptvboss-docker-beta:<version>`
 - Ports: `5901` (VNC client), `6901` (noVNC web client), `8001` (XC server, optional)
@@ -56,4 +56,4 @@ docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 \
 
 ## Everything else is the same as stable
 
-Accessing the VNC server, the full noVNC client/clipboard, overriding VNC environment variables, Dropbox/Firefox default browser, the desktop launcher trust prompt, and Cronitor integration all work identically to the stable image. See [VNC — Stable](vnc-stable.md) for those details.
+Accessing the VNC server, the full noVNC client/clipboard, overriding VNC environment variables, Dropbox/Firefox default browser, the desktop launcher trust prompt, and Cronitor integration all work identically to the stable image. See [VNC — Stable](VNC-Stable) for those details.

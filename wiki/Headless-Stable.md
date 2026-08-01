@@ -10,7 +10,7 @@
 
 **Note:**
 
-- *`PUID`/`PGID`, `CRON_SCHEDULE`, `TZ`, `CRONITOR_API_KEY` and `CRONITOR_SCHEDULE_NAME` all behave the same way as the [VNC image](vnc-stable.md).*
+- *`PUID`/`PGID`, `CRON_SCHEDULE`, `TZ`, `CRONITOR_API_KEY` and `CRONITOR_SCHEDULE_NAME` all behave the same way as the [VNC image](VNC-Stable).*
 - *Use `CRON_SCHEDULE` only for container-managed cron scheduling. If you use IPTVBoss internal scheduling instead, leave `CRON_SCHEDULE` unset; Cronitor cannot monitor IPTVBoss internal scheduling.*
 - *The volume is still mounted to `/headless/IPTVBoss`, and the same volume-permission requirements apply — do not run the container as root, and make sure the local folder permissions match your `PUID`/`PGID`.*
 
@@ -63,4 +63,4 @@ docker run -it -p 8001:8001 \
 
 Access the XC server at `http://<your-machine-ip>:8001`.
 
-See also: [Cronitor integration](cronitor.md).
+See also: [Cronitor Integration](Cronitor-Integration).

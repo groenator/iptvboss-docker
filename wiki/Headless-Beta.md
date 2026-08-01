@@ -4,7 +4,7 @@
 
 `Beta` here refers to the IPTVBoss app release channel. This image tracks official IPTVBoss beta releases (from the `beta-release` tag/file), not a separate "beta container" codebase.
 
-Builds the same [`Dockerfile.headless`](../Dockerfile.headless) as the [stable headless image](headless-stable.md), but pointed at a beta release tag via the `BETA_TAG` build argument instead of `LATEST_TAG`.
+Builds the same [`Dockerfile.headless`](https://github.com/groenator/iptvboss-docker/blob/master/Dockerfile.headless) as the [stable headless image](Headless-Stable), but pointed at a beta release tag via the `BETA_TAG` build argument instead of `LATEST_TAG`.
 
 - Image: `ghcr.io/groenator/iptvboss-docker-headless-beta:<version>`
 - Ports: `8001` (XC server) only
@@ -57,4 +57,4 @@ docker run -it -p 8001:8001 \
   ghcr.io/groenator/iptvboss-docker-headless-beta:latest
 ```
 
-Everything else (environment variables, volume/permission requirements, Cronitor integration) is identical to the [stable headless image](headless-stable.md).
+Everything else (environment variables, volume/permission requirements, Cronitor integration) is identical to the [stable headless image](Headless-Stable).

@@ -83,4 +83,4 @@ docker build -f Dockerfile.xpra \
     -t iptvboss-xpra:stable .
 ```
 
-See also: [Cronitor integration](cronitor.md).
+See also: [Cronitor Integration](Cronitor-Integration).

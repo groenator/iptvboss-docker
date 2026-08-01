@@ -63,7 +63,7 @@ Open `http://<host-ip>:5454`. IPTVBoss starts when the browser client connects. 
 - Xpra is an application-window session, not a complete desktop. Use the VNC image if you need the full XFCE environment.
 - Do not expose Xpra, VNC/noVNC, or XC ports directly to the public internet. Prefer a firewall plus a VPN/private overlay, or an authenticated TLS reverse proxy.
 
-More information is available in [docs/xpra-stable.md](docs/xpra-stable.md), [docs/xpra-beta.md](docs/xpra-beta.md), and [docs/cronitor.md](docs/cronitor.md).
+More information is available in [Xpra Stable](https://github.com/groenator/iptvboss-docker/wiki/Xpra-Stable), [Xpra Beta](https://github.com/groenator/iptvboss-docker/wiki/Xpra-Beta), and [Cronitor Integration](https://github.com/groenator/iptvboss-docker/wiki/Cronitor-Integration) on the wiki.
 
 ## Maintainer and staff notes
 

@@ -4,7 +4,7 @@ Please note this is a beta image and may contain bugs. Back up your IPTVBoss dat
 
 `Beta` here refers to the IPTVBoss app release channel. This image tracks official IPTVBoss beta releases (from the `beta-release` tag/file), not a separate "beta container" codebase.
 
-This image uses the same Xpra setup as [Xpra stable](xpra-stable.md), but tracks the IPTVBoss beta release.
+This image uses the same Xpra setup as [Xpra stable](Xpra-Stable), but tracks the IPTVBoss beta release.
 
 ## Why this image exists
 
@@ -79,4 +79,4 @@ docker build -f Dockerfile.xpra \
     -t iptvboss-xpra:beta .
 ```
 
-Everything else (automatic IPTVBoss launch, browser speaker audio, media playback, cron setup, volume permissions, and Cronitor integration) is the same as [Xpra stable](xpra-stable.md).
+Everything else (automatic IPTVBoss launch, browser speaker audio, media playback, cron setup, volume permissions, and Cronitor integration) is the same as [Xpra stable](Xpra-Stable).

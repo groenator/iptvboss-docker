@@ -1,6 +1,6 @@
 # Cronitor Integration (Optional)
 
-Applies to all six image variants ([VNC stable](vnc-stable.md), [VNC beta](vnc-beta.md), [Headless stable](headless-stable.md), [Headless beta](headless-beta.md), [Xpra stable](xpra-stable.md), [Xpra beta](xpra-beta.md)).
+Applies to all six image variants ([VNC stable](VNC-Stable), [VNC beta](VNC-Beta), [Headless stable](Headless-Stable), [Headless beta](Headless-Beta), [Xpra stable](Xpra-Stable), [Xpra beta](Xpra-Beta)).
 
 Important:
 
@@ -59,4 +59,4 @@ docker run -it -p 5901:5901 -p 6901:6901 -p 8001:8001 \
     ghcr.io/groenator/iptvboss-docker:latest
 ```
 
-For the headless image, drop the `5901`/`6901` ports and `XC_SERVER` variable as shown in the [headless docs](headless-stable.md) — everything else is the same.
+For the headless image, drop the `5901`/`6901` ports and `XC_SERVER` variable as shown in the [headless docs](Headless-Stable) — everything else is the same.
