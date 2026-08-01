@@ -101,6 +101,14 @@ More information is available in [docs/xpra-stable.md](docs/xpra-stable.md), [do
 - Push builds publish `latest` and application-version tags. Internal pull requests publish `pr-<number>` tags without replacing release tags.
 - CodeQL remains a prerequisite for image builds.
 
+### Package integrity and provenance
+
+- IPTVBoss package installation is centralized in `install_iptvboss.sh` and shared by VNC, headless, and Xpra images.
+- For each build channel, the installer downloads `iptvboss_<version>_<arch>.deb` and validates it against the SHA256 value in that release's `Packages` metadata before install.
+- Xpra source trust is hardened by validating:
+  - the downloaded Xpra signing key SHA256 and expected OpenPGP fingerprint;
+  - the downloaded Xpra `sources` file SHA256 before repository updates.
+
 ### Validation status
 
 - Initial startup validation was completed for all six `pr-254` image variants.

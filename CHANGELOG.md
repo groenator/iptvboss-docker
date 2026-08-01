@@ -17,10 +17,12 @@ This is a major container release: IPTVBoss can now run as a lightweight Xpra br
 - **rclone in every image family**: Added rclone to VNC, headless, and Xpra stable/beta images for external storage synchronization.
 - **Six-image multi-platform publishing**: CI now builds stable and beta variants for VNC, headless, and Xpra on both `amd64` and `arm64`, including pull-request image tags in the `pr-<number>` format.
 
-### Changed
+### Changed (3.11.16)
 
 - **VNC base OS**: Migrated the VNC image (`Dockerfile`) to Debian `trixie`; builds now perform a full `dist-upgrade` so TigerVNC/Xvnc and the underlying OS use currently supported packages.
 - **Headless base OS**: Migrated `Dockerfile.headless` from Ubuntu 20.04 to Ubuntu 24.04 and updated renamed runtime libraries.
+- **Shared IPTVBoss installer**: Consolidated stable/beta package download, verification, and install logic into `install_iptvboss.sh`, used by VNC, headless, and Xpra images.
+- **Direct tag-driven builds**: Standardized image installs to use `LATEST_TAG` and `BETA_TAG` build arguments directly, while preserving channel-specific package sources.
 - **Consistent runtime identity**: Improved `PUID`/`PGID`, home-directory, cache, configuration, cron-file, and mounted-volume ownership handling across the image variants.
 - **Centralized cron monitoring setup**: Moved the shared Cronitor configuration call into `configure_cron_schedule.sh`, so VNC, headless, and Xpra use the same cron/Cronitor path and default monitor naming behavior.
 - **Selective CI builds**: Updated the Docker workflow to detect affected stable/beta image families, build native platform images, merge multi-platform manifests, and publish PR-specific tags without replacing release tags.
@@ -42,6 +44,8 @@ This is a major container release: IPTVBoss can now run as a lightweight Xpra br
 ### Security
 
 - Refreshed the VNC and headless base operating systems to supported Debian and Ubuntu releases with current upstream security packages.
+- Added build-time IPTVBoss package integrity validation by checking the downloaded `.deb` SHA256 against the channel release `Packages` metadata before installation.
+- Added Xpra repository trust checks by validating the Xpra signing key SHA256 and fingerprint, and validating the downloaded Xpra `sources` file SHA256 before `apt-get update`.
 - Added documentation warning against exposing ports `5454`, `5901`, `6901`, or `8001` directly to the internet and recommending a firewall, VPN/private overlay, or authenticated TLS reverse proxy.
 
 ### Documentation
