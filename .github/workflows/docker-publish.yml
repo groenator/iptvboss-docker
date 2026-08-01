@@ -181,6 +181,10 @@ jobs:
     name: Build ${{ matrix.id }} (${{ matrix.arch }})
     if: needs.changes.outputs.build_matrix != '[]' && needs.codeql.result == 'success'
     needs: [changes, codeql]
+    env:
+      XPRA_KEY_SHA256: ${{ secrets.XPRA_KEY_SHA256 }}
+      XPRA_KEY_FINGERPRINT: ${{ secrets.XPRA_KEY_FINGERPRINT }}
+      XPRA_SOURCES_SHA256: ${{ secrets.XPRA_SOURCES_SHA256 }}
     strategy:
       fail-fast: false
       matrix:
@@ -235,6 +239,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+            XPRA_KEY_SHA256=${{ env.XPRA_KEY_SHA256 }}
+            XPRA_KEY_FINGERPRINT=${{ env.XPRA_KEY_FINGERPRINT }}
+            XPRA_SOURCES_SHA256=${{ env.XPRA_SOURCES_SHA256 }}
           push: false
           cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
@@ -250,6 +257,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+            XPRA_KEY_SHA256=${{ env.XPRA_KEY_SHA256 }}
+            XPRA_KEY_FINGERPRINT=${{ env.XPRA_KEY_FINGERPRINT }}
+            XPRA_SOURCES_SHA256=${{ env.XPRA_SOURCES_SHA256 }}
           outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
