@@ -7,6 +7,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set the environment variables for the build
 ARG LATEST_TAG
 ARG BETA_TAG
+ARG XPRA_KEY_SHA256="4df3209ea4b759f0b5838b60baedb6893ec62df7abad9046462176a6e6a7ed7d"
+ARG XPRA_KEY_FINGERPRINT="B4993B57323148E37977E5D873254CAD17978FAF"
+ARG XPRA_SOURCES_SHA256="43307ca6b67ebeeeafbb02f543643a4cfc94548da17e26b0ac07bfdd335e4158"
 
 ENV XPRA_UBUNTU_RELEASE="noble"
 
@@ -22,6 +25,7 @@ RUN set -eux \
         ca-certificates \
         apt-transport-https \
         software-properties-common \
+        gnupg \
         curl \
         wget \
         jq \
@@ -31,8 +35,15 @@ RUN set -eux \
         python3 \
         python3-requests \
     && add-apt-repository universe \
-    && curl -o /usr/share/keyrings/xpra.asc https://xpra.org/xpra.asc \
-    && curl -o /etc/apt/sources.list.d/xpra.sources https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/${XPRA_UBUNTU_RELEASE}/xpra.sources \
+    && curl --fail --silent --show-error --location \
+        -o /usr/share/keyrings/xpra.asc \
+        https://xpra.org/xpra.asc \
+    && echo "${XPRA_KEY_SHA256}  /usr/share/keyrings/xpra.asc" | sha256sum -c - \
+    && test "$(gpg --show-keys --with-colons /usr/share/keyrings/xpra.asc | awk -F: '$1==\"fpr\" {print $10; exit}')" = "${XPRA_KEY_FINGERPRINT}" \
+    && curl --fail --silent --show-error --location \
+        -o /etc/apt/sources.list.d/xpra.sources \
+        https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/${XPRA_UBUNTU_RELEASE}/xpra.sources \
+    && echo "${XPRA_SOURCES_SHA256}  /etc/apt/sources.list.d/xpra.sources" | sha256sum -c - \
     && apt-get update \
     && apt-get install -y \
         xpra \
