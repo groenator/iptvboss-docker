@@ -45,13 +45,6 @@ fi
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
 
-# Configure cronitor if API key is provided
-if [ -n "$CRONITOR_API_KEY" ]; then
-    configure_cronitor() {
-        python3 /headless/scripts/cronitor.py --name "$CRONITOR_SCHEDULE_NAME"
-    }
-    configure_cronitor
-fi
 # Start the iptvboss service
 echo "Starting iptvboss XC server"
 /usr/bin/iptvboss -xcserver

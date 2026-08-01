@@ -27,6 +27,7 @@ RUN set -eux \
         jq \
         cron \
         gosu \
+        sudo \
         python3 \
         python3-requests \
     && add-apt-repository universe \

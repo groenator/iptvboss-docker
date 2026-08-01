@@ -37,3 +37,8 @@ else
     echo "APPLY_CRONTAB=0 set. Skipping crontab install."
 fi
 
+# Configure Cronitor monitoring if an API key is provided.
+if [ -n "$CRONITOR_API_KEY" ]; then
+    python3 /headless/scripts/cronitor.py --name "${CRONITOR_SCHEDULE_NAME:-IPTVBoss Cron}"
+fi
+

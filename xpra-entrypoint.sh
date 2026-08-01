@@ -50,14 +50,6 @@ fi
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
 
-# Configure cronitor if API key is provided
-if [ -n "$CRONITOR_API_KEY" ]; then
-    configure_cronitor() {
-        python3 /headless/scripts/cronitor.py --name "$CRONITOR_SCHEDULE_NAME"
-    }
-    configure_cronitor
-fi
-
 mkdir -p /run/xpra
 export XDG_RUNTIME_DIR=/tmp
 export XDG_CONFIG_HOME=/headless/.config
