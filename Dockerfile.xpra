@@ -72,17 +72,24 @@ RUN set -eux \
     && find /usr/share/applications -not -name '*iptvboss*' -not -name '*Terminal*' -not -name '*Nautilus*' -not -name '*gedit*' -type f -delete \
     && update-desktop-database
 
-# Create app user
-RUN useradd -m -s /bin/bash app
+# Create iptvboss user with home directory set to /headless (consistent with other images)
+RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss
+
+# Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
+# the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
+# entrypoint only chowns /headless when PUID/PGID are set.
+RUN mkdir -p /headless/.cache && \
+    chown iptvboss:iptvboss /headless/.cache && \
+    chmod 700 /headless/.cache
 
 # Shared cron helper scripts (also used by Dockerfile / Dockerfile.headless)
 COPY configure_cron_schedule.sh /usr/local/bin/configure_cron_schedule.sh
 COPY cronitor.py /usr/local/bin/cronitor.py
 RUN chmod +x /usr/local/bin/configure_cron_schedule.sh /usr/local/bin/cronitor.py
-RUN mkdir -m 700 -p /headless/IPTVBoss/log && chown -R app:app /headless/IPTVBoss
+RUN mkdir -m 700 -p /headless/IPTVBoss/log && chown -R iptvboss:iptvboss /headless/IPTVBoss
 
 # Point the shared cron script at the same persistent path used by other images
-ENV CRON_FILE="/headless/IPTVBoss/iptvboss-cron"
+ENV CRON_FILE="/headless/iptvboss-cron"
 ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /headless/IPTVBoss/log/cron.log 2>&1"
 
 COPY xpra-entrypoint.sh /opt/xpra-entrypoint.sh

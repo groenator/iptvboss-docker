@@ -1,23 +1,27 @@
 #!/bin/bash
 set -e
 
-# Root-level setup: permissions and cron daemon, then drop to app user (mirrors entrypoint.sh/xcserver.sh).
+# Root-level setup: permissions and cron daemon, then drop to iptvboss user (mirrors entrypoint.sh/xcserver.sh).
 if [ "$(id -u)" = "0" ]; then
     if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
-        echo "Setting app user and group id to ${PUID} and ${PGID}..."
-        groupmod -o -g "${PGID}" app
-        usermod -o -u "${PUID}" app
-        chown -R "${PUID}:${PGID}" /headless/IPTVBoss
+        echo "Setting iptvboss user and group id to ${PUID} and ${PGID}..."
+        groupmod -o -g "${PGID}" iptvboss
+        usermod -o -u "${PUID}" iptvboss
+        usermod -aG audio iptvboss
+        chown -R "${PUID}:${PGID}" /headless
     fi
 
     echo "Starting the cron daemon"
     cron
 
-    crontab -u app /headless/IPTVBoss/iptvboss-cron 2>/dev/null || true
+    touch /headless/iptvboss-cron && \
+    chown iptvboss:iptvboss /headless/iptvboss-cron && \
+    chmod 600 /headless/iptvboss-cron && \
+    crontab -u iptvboss /headless/iptvboss-cron 2>/dev/null || true
     touch /headless/IPTVBoss/log/cron.log
-    chown app:app /headless/IPTVBoss/log/cron.log
+    chown iptvboss:iptvboss /headless/IPTVBoss/log/cron.log
 
-    exec gosu app "$BASH_SOURCE" "$@"
+    exec gosu iptvboss "$BASH_SOURCE" "$@"
 fi
 
 # The following runs as the app user due to the gosu re-exec above.
@@ -29,6 +33,7 @@ fi
 
 mkdir -p /run/xpra
 export XDG_RUNTIME_DIR=/tmp
+export HOME=/headless
 # gnome-terminal requires a UTF-8 locale.
 export LANG="${LANG:-C.UTF-8}"
 export LC_ALL="${LC_ALL:-C.UTF-8}"
