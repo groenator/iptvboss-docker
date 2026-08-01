@@ -76,18 +76,15 @@ RUN set -eux \
 RUN mkdir -p /headless/scripts
 COPY cronitor.py /headless/scripts/
 COPY configure_cron_schedule.sh /headless/scripts/
+COPY install_iptvboss.sh /headless/scripts/
 
 # Install IPTVBoss
 RUN CPU=$(dpkg --print-architecture) \
     && if [ -n "$LATEST_TAG" ]; then \
-        wget -q "https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb" && \
-        apt-get update && apt-get install -y "./iptvboss_${LATEST_TAG#v}_${CPU}.deb" && \
-        rm -f "iptvboss_${LATEST_TAG#v}_${CPU}.deb"; \
+        sh /headless/scripts/install_iptvboss.sh stable "$LATEST_TAG" "$CPU"; \
     fi \
     && if [ -n "$BETA_TAG" ]; then \
-        wget -q "https://github.com/walrusone/iptvboss-beta/releases/download/${BETA_TAG#v}/iptvboss_${BETA_TAG#v}_${CPU}.deb" && \
-        apt-get update && apt-get install -y "./iptvboss_${BETA_TAG#v}_${CPU}.deb" && \
-        rm -f "iptvboss_${BETA_TAG#v}_${CPU}.deb"; \
+        sh /headless/scripts/install_iptvboss.sh beta "$BETA_TAG" "$CPU"; \
     fi \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
