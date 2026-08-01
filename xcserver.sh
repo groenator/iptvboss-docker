@@ -52,8 +52,7 @@ fi
 
 # Start the iptvboss service
 echo "Starting iptvboss XC server"
-/usr/bin/iptvboss -xcserver
-if [ $? -eq 0 ]; then
+if /usr/bin/iptvboss -xcserver; then
     echo "Debug: /usr/bin/iptvboss -xcserver started successfully."
 else
     echo "Error: Failed to start /usr/bin/iptvboss -xcserver." >&2
