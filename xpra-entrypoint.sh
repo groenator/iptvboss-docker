@@ -62,5 +62,8 @@ exec xpra start \
     --daemon=no \
     --bind-ws=0.0.0.0:5454 \
     --resize-display=yes \
+    --speaker=on \
+    --microphone=off \
+    --pulseaudio=yes \
     --start-child-on-connect="sh -lc 'pgrep -f /usr/lib/iptvboss/bin/iptvboss >/dev/null || exec /usr/bin/iptvboss'" \
     :100
