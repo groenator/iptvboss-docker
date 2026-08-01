@@ -66,8 +66,14 @@ docker run -it --rm \
 ## Access Xpra and launch IPTVBoss
 
 1. Open `http://your-host-ip:5454` in your browser.
-2. In the Xpra top menu, click Applications -> IPTVBoss.
+2. IPTVBoss starts when the browser client connects. You can also use Applications -> IPTVBoss if it is not already running.
 3. If needed, open Applications -> Terminal for shell access.
+
+## Audio and media playback
+
+The image includes VLC, the native VLC development library, FFmpeg codecs, and a dedicated PulseAudio speaker sink. IPTVBoss stream video and speaker audio can therefore be delivered through the Xpra HTML5 session without mounting the host's `/dev/snd` device. Microphone forwarding is disabled.
+
+Browser autoplay policies can still require a user interaction before audio begins. If a stream is silent, confirm that the Xpra toolbar speaker control and the browser tab are not muted.
 
 ## Build locally
 

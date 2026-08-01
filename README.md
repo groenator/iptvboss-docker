@@ -43,6 +43,7 @@ This repo builds Docker images for running [IPTVBoss](https://github.com/walruso
 | Xpra — Stable | Browser access to IPTVBoss app windows over Xpra HTML5 | [docs/xpra-stable.md](docs/xpra-stable.md) |
 | Xpra — Beta | Same Xpra setup, tracks a beta IPTVBoss release | [docs/xpra-beta.md](docs/xpra-beta.md) |
 | Cronitor integration | Optional cron job monitoring, applies to all six images | [docs/cronitor.md](docs/cronitor.md) |
+| Upcoming release | User announcement, upgrade guidance, and staff notes | [RELEASE_NOTES.md](RELEASE_NOTES.md) |
 
 ## Image-specific setup and usage
 

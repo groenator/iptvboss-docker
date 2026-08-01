@@ -101,6 +101,5 @@ exec xpra start \
     --speaker=on \
     --microphone=off \
     --pulseaudio=no \
-    -d sound,gstreamer \
     --start-child-on-connect="sh -lc 'pgrep -f /usr/lib/iptvboss/bin/iptvboss >/dev/null || exec /usr/bin/iptvboss'" \
     :100

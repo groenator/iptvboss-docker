@@ -79,4 +79,4 @@ docker build -f Dockerfile.xpra \
     -t iptvboss-xpra:beta .
 ```
 
-Everything else (menu launch behavior, cron setup, volume permissions, Cronitor integration) is the same as [Xpra stable](xpra-stable.md).
+Everything else (automatic IPTVBoss launch, browser speaker audio, media playback, cron setup, volume permissions, and Cronitor integration) is the same as [Xpra stable](xpra-stable.md).

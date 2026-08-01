@@ -6,21 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Security
+This is a major container release: IPTVBoss can now run as a lightweight Xpra browser session in addition to the existing VNC desktop and headless XC server options. See [RELEASE_NOTES.md](RELEASE_NOTES.md) for user announcements, upgrade guidance, maintainer notes, and validation status.
 
-- **Migrated the VNC image (`Dockerfile`) to Debian `trixie` and performed a full `dist-upgrade`** to pull in the latest upstream security patches for the base OS packages.
-- **Migrated the headless image (`Dockerfile.headless`) to Ubuntu 24.04** and adjusted package installations accordingly to pick up current security fixes.
+### Added
+
+- **Xpra stable and beta images**: Added lightweight browser-window images that expose IPTVBoss through the Xpra HTML5 client on port `5454`, without requiring a full XFCE desktop.
+- **Xpra browser audio forwarding**: Added a dedicated per-user PulseAudio daemon and virtual speaker sink so IPTVBoss/VLC audio can be forwarded to the Xpra HTML5 client. Microphone forwarding remains disabled.
+- **Xpra media support**: Added VLC, `libvlc-dev`, FFmpeg codec packages, and the required GStreamer/X11 libraries for IPTVBoss stream video and audio playback.
+- **Xpra helper applications**: Added GNOME Terminal, Nautilus, Gedit, Zenity, and desktop menu integration while keeping the application menu limited to useful entries.
+- **rclone in every image family**: Added rclone to VNC, headless, and Xpra stable/beta images for external storage synchronization.
+- **Six-image multi-platform publishing**: CI now builds stable and beta variants for VNC, headless, and Xpra on both `amd64` and `arm64`, including pull-request image tags in the `pr-<number>` format.
+
+### Changed
+
+- **VNC base OS**: Migrated the VNC image (`Dockerfile`) to Debian `trixie`; builds now perform a full `dist-upgrade` so TigerVNC/Xvnc and the underlying OS use currently supported packages.
+- **Headless base OS**: Migrated `Dockerfile.headless` from Ubuntu 20.04 to Ubuntu 24.04 and updated renamed runtime libraries.
+- **Consistent runtime identity**: Improved `PUID`/`PGID`, home-directory, cache, configuration, cron-file, and mounted-volume ownership handling across the image variants.
+- **Centralized cron monitoring setup**: Moved the shared Cronitor configuration call into `configure_cron_schedule.sh`, so VNC, headless, and Xpra use the same cron/Cronitor path and default monitor naming behavior.
+- **Selective CI builds**: Updated the Docker workflow to detect affected stable/beta image families, build native platform images, merge multi-platform manifests, and publish PR-specific tags without replacing release tags.
 
 ### Fixed
 
-- **Chromium desktop launcher not opening**: The base image's `/dockerstartup/chrome-init.sh` generated a `CHROMIUM_FLAGS` string containing a bare `--user-data-dir` with no path value, which current Chromium builds silently refuse to start with (no renderer/GPU process ever spawns). Added a repo-local [`chrome-init.sh`](chrome-init.sh) that overrides the base script and sets `--user-data-dir=$HOME/.config/chromium-browser`.
-- **Desktop icon "Untrusted application launcher" prompt not persisting across restarts**: The gvfs-metadata trust checksum (`gvfs-metadata-home`) was restored from the persistent volume on container start, but never backed up again afterward, so any manual "Mark As Secure And Launch" decision was lost on the next container restart/redeploy. Added a continuous backup loop in [`entrypoint.sh`](entrypoint.sh) that copies the trust checksum back to the persistent volume every few seconds, matching the fix in the upstream [ConSol `docker-headless-vnc-container` PR #207](https://github.com/ConSol/docker-headless-vnc-container/pull/207). You still need to click "Mark As Secure And Launch" once per icon on a fresh volume, but the decision now survives restarts.
-- **VNC clipboard checkboxes unticked by default**: Explicitly pinned `-AcceptCutText=1 -SendCutText=1 -SendPrimary=1 -SetPrimary=1` on the `vncserver` command line in the `Dockerfile` for consistency, even though these already default to "on" in current Xtigervnc builds.
+- **Chromium desktop launcher not opening**: The base image's `/dockerstartup/chrome-init.sh` generated a `CHROMIUM_FLAGS` string containing a bare `--user-data-dir` with no path value, which current Chromium builds silently refuse to start with. Added a repo-local [`chrome-init.sh`](chrome-init.sh) that sets `--user-data-dir=$HOME/.config/chromium-browser`.
+- **Desktop launcher trust not surviving restarts**: The VNC image now continuously backs up the `gvfs-metadata` trust record to persistent IPTVBoss storage. Users still approve each launcher once on a fresh volume, but that decision can survive container restarts and redeployments.
+- **VNC clipboard state**: Explicitly enabled `AcceptCutText`, `SendCutText`, `SendPrimary`, and `SetPrimary` on the TigerVNC server command line.
+- **Xpra home-directory and UID conflict**: Removed the Ubuntu base image's default user and consistently use the `iptvboss` account with `/headless` as `HOME`, preventing Xpra from storing sockets and configuration under `/home/ubuntu`.
+- **Xpra application launch behavior**: IPTVBoss is started when a browser client connects, while duplicate application processes are avoided.
+- **Xpra runtime warnings and permissions**: Added the required UTF-8 locale, D-Bus, XKB library, writable cache/configuration directories, and an owned `XDG_RUNTIME_DIR`.
+- **Xpra production logging**: Removed verbose sound/GStreamer debug logging after audio validation so normal container logs remain focused on operational events and errors.
+- **Xpra stream playback**: Resolved missing native VLC library errors and enabled video/audio playback from IPTVBoss.
+- **Cronitor installation in Xpra**: Added `sudo` and consolidated Cronitor invocation so monitored cron commands are created consistently.
+- **Cron log consistency**: Xpra now writes scheduled IPTVBoss output to `/var/log/cron.log`, matching the other image families.
+- **Non-root cache access**: Ensured `.cache` and relevant configuration directories are writable by the runtime IPTVBoss user.
+
+### Security
+
+- Refreshed the VNC and headless base operating systems to supported Debian and Ubuntu releases with current upstream security packages.
+- Added documentation warning against exposing ports `5454`, `5901`, `6901`, or `8001` directly to the internet and recommending a firewall, VPN/private overlay, or authenticated TLS reverse proxy.
 
 ### Documentation
 
-- Restructured `README.md` into a concise index with a `docs/` folder containing dedicated pages: [docs/vnc-stable.md](docs/vnc-stable.md), [docs/vnc-beta.md](docs/vnc-beta.md), [docs/headless-stable.md](docs/headless-stable.md), [docs/headless-beta.md](docs/headless-beta.md), and [docs/cronitor.md](docs/cronitor.md).
-- Documented the headless (`Dockerfile.headless`) image usage (build args, Docker Compose, `docker run` examples) for the first time.
+- Restructured `README.md` into an image index with dedicated guides for VNC, headless, Xpra, and Cronitor.
+- Added stable and beta Xpra build, Compose, CLI, access, volume, scheduling, and security guidance.
+- Documented the headless image build and runtime configuration for the first time.
+- Added separate user-facing and maintainer/staff release notes in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ## Prior release (3.11.16, base image refresh)
 
