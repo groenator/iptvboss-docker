@@ -48,7 +48,7 @@ jobs:
           fi
 
           echo "Latest version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "assets_ready=true" >> "$GITHUB_OUTPUT"
 
       # Step 2: Clone your repository
@@ -60,11 +60,11 @@ jobs:
       - name: Update beta-release file
         if: steps.fetch_latest.outputs.assets_ready == 'true'
         run: |
-          echo "${{ env.version }}" > beta-release
+          echo "${{ steps.fetch_latest.outputs.version }}" > beta-release
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add beta-release
-          git commit -m "feat(beta): publishing beta-release (version ${{ env.version }})" || echo "No changes to commit."
+          git commit -m "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})" || echo "No changes to commit."
 
       # Step 4: Create a Pull Request
       - name: Create Pull Request
@@ -72,11 +72,11 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat(beta): publishing beta-release (version ${{ env.version }})"
-          branch: update-beta-release-${{ env.version }}
-          title: "feat(beta): publishing beta-release (version ${{ env.version }})"
+          commit-message: "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})"
+          branch: update-beta-release-${{ steps.fetch_latest.outputs.version }}
+          title: "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})"
           body: |
-            This PR updates the beta-release file to version `${{ env.version }}`.
+            This PR updates the beta-release file to version `${{ steps.fetch_latest.outputs.version }}`.
 
   update-stable-release:
       name: Update Stable Release
@@ -120,7 +120,7 @@ jobs:
             fi
 
             echo "Latest version: $VERSION"
-            echo "version=$VERSION" >> "$GITHUB_ENV"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "assets_ready=true" >> "$GITHUB_OUTPUT"
 
         # Step 2: Clone your repository
@@ -132,11 +132,11 @@ jobs:
         - name: Update stable-release file
           if: steps.fetch_latest.outputs.assets_ready == 'true'
           run: |
-            echo "${{ env.version }}" > release
+            echo "${{ steps.fetch_latest.outputs.version }}" > release
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             git add release
-            git commit -m "feat(stable): publishing stable-release (version ${{ env.version }})" || echo "No changes to commit."
+            git commit -m "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})" || echo "No changes to commit."
 
         # Step 4: Create a Pull Request
         - name: Create Pull Request
@@ -144,8 +144,8 @@ jobs:
           uses: peter-evans/create-pull-request@v5
           with:
             token: ${{ secrets.GITHUB_TOKEN }}
-            commit-message: "feat(stable): publishing stable-release (version ${{ env.version }})"
-            branch: update-stable-release-${{ env.version }}
-            title: "feat(stable): publishing stable-release (version ${{ env.version }})"
+            commit-message: "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})"
+            branch: update-stable-release-${{ steps.fetch_latest.outputs.version }}
+            title: "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})"
             body: |
-              This PR updates the stable-release file to version `${{ env.version }}`.
+              This PR updates the stable-release file to version `${{ steps.fetch_latest.outputs.version }}`.

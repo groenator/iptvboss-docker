@@ -17,12 +17,17 @@ if [ "$(id -u)" = "0" ]; then
     # Install cronitor
     if [ -n "$CRONITOR_API_KEY" ]; then
         echo "Installing cronitor..."
-        curl -s https://cronitor.io/install-linux?sudo=1 -H "API-KEY: $CRONITOR_API_KEY" | sh > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
+        CRONITOR_INSTALLER="$(mktemp)"
+        if curl --fail --silent --show-error --location \
+            -H "API-KEY: $CRONITOR_API_KEY" \
+            "https://cronitor.io/install-linux?sudo=1" \
+            -o "$CRONITOR_INSTALLER" && \
+            sh "$CRONITOR_INSTALLER" > /dev/null 2>&1; then
             echo "Cronitor installed successfully."
         else
             echo "Error: Cronitor installation failed." >&2
         fi
+        rm -f "$CRONITOR_INSTALLER"
     else
         echo "CRONITOR_API_KEY not set. Skipping cronitor installation."
     fi
@@ -45,17 +50,9 @@ fi
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
 
-# Configure cronitor if API key is provided
-if [ -n "$CRONITOR_API_KEY" ]; then
-    configure_cronitor() {
-        python3 /headless/scripts/cronitor.py --name "$CRONITOR_SCHEDULE_NAME"
-    }
-    configure_cronitor
-fi
 # Start the iptvboss service
 echo "Starting iptvboss XC server"
-/usr/bin/iptvboss -xcserver
-if [ $? -eq 0 ]; then
+if /usr/bin/iptvboss -xcserver; then
     echo "Debug: /usr/bin/iptvboss -xcserver started successfully."
 else
     echo "Error: Failed to start /usr/bin/iptvboss -xcserver." >&2

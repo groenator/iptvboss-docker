@@ -2,11 +2,9 @@ name: Docker
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+    tags: ['*']
   pull_request:
-    branches:
-      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -102,7 +100,7 @@ jobs:
               beta-release)
                 BETA=true
                 ;;
-              Dockerfile|Dockerfile.headless|cronitor.py|entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
+              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
                 STABLE=true
                 BETA=true
                 ;;
@@ -127,6 +125,13 @@ jobs:
                   dockerfile: "Dockerfile.headless",
                   version_file: "release",
                   build_arg: "LATEST_TAG"
+                },
+                {
+                  id: "xpra-stable",
+                  image: "ghcr.io/groenator/iptvboss-xpra-stable",
+                  dockerfile: "Dockerfile.xpra",
+                  version_file: "release",
+                  build_arg: "LATEST_TAG"
                 }
               else empty end,
               if $beta then
@@ -141,6 +146,13 @@ jobs:
                   id: "headless-beta",
                   image: "ghcr.io/groenator/iptvboss-docker-headless-beta",
                   dockerfile: "Dockerfile.headless",
+                  version_file: "beta-release",
+                  build_arg: "BETA_TAG"
+                },
+                {
+                  id: "xpra-beta",
+                  image: "ghcr.io/groenator/iptvboss-xpra-beta",
+                  dockerfile: "Dockerfile.xpra",
                   version_file: "beta-release",
                   build_arg: "BETA_TAG"
                 }
@@ -170,6 +182,10 @@ jobs:
     name: Build ${{ matrix.id }} (${{ matrix.arch }})
     if: needs.changes.outputs.build_matrix != '[]' && needs.codeql.result == 'success'
     needs: [changes, codeql]
+    env:
+      XPRA_KEY_SHA256: ${{ secrets.XPRA_KEY_SHA256 }}
+      XPRA_KEY_FINGERPRINT: ${{ secrets.XPRA_KEY_FINGERPRINT }}
+      XPRA_SOURCES_SHA256: ${{ secrets.XPRA_SOURCES_SHA256 }}
     strategy:
       fail-fast: false
       matrix:
@@ -207,7 +223,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -215,7 +231,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate platform image
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -224,13 +240,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+            XPRA_KEYRING_CHECKSUM=${{ env.XPRA_KEY_SHA256 }}
+            XPRA_KEYRING_FINGERPRINT=${{ env.XPRA_KEY_FINGERPRINT }}
+            XPRA_SOURCES_CHECKSUM=${{ env.XPRA_SOURCES_SHA256 }}
           push: false
           cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
 
       - name: Build and push platform image by digest
         id: build
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -239,12 +258,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             ${{ matrix.build_arg }}=${{ steps.version.outputs.version }}
+            XPRA_KEYRING_CHECKSUM=${{ env.XPRA_KEY_SHA256 }}
+            XPRA_KEYRING_FINGERPRINT=${{ env.XPRA_KEY_FINGERPRINT }}
+            XPRA_SOURCES_CHECKSUM=${{ env.XPRA_SOURCES_SHA256 }}
           outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.id }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
 
       - name: Export image digest
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -257,8 +279,8 @@ jobs:
           touch "/tmp/digests/${DIGEST#sha256:}"
 
       - name: Upload image digest
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v5
         with:
           name: digests-${{ matrix.id }}-${{ matrix.arch }}
           path: /tmp/digests/*
@@ -268,7 +290,7 @@ jobs:
   merge_manifests:
     name: Publish ${{ matrix.id }} manifest
     if: |
-      github.event_name == 'push' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       needs.changes.outputs.image_matrix != '[]' &&
       needs.codeql.result == 'success' &&
       needs.build_platforms.result == 'success'
@@ -295,7 +317,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download image digests
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: digests-${{ matrix.id }}-*
           path: /tmp/digests
@@ -317,8 +339,9 @@ jobs:
         with:
           images: ${{ matrix.image }}
           tags: |
-            type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.event_name == 'push' }}
+            type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
 
       - name: Create multi-platform manifest
         shell: bash
@@ -348,4 +371,10 @@ jobs:
         env:
           IMAGE: ${{ matrix.image }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: docker buildx imagetools inspect "${IMAGE}:${VERSION}"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            docker buildx imagetools inspect "${IMAGE}:pr-${PR_NUMBER}"
+          else
+            docker buildx imagetools inspect "${IMAGE}:${VERSION}"
+          fi

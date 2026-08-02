@@ -1,0 +1,143 @@
+FROM ubuntu:24.04
+
+# Set locale to avoid warnings
+ENV LC_ALL=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the environment variables for the build
+ARG LATEST_TAG
+ARG BETA_TAG
+# Not secrets: public checksums used only to verify the downloaded xpra keyring/sources at build time
+ARG XPRA_KEYRING_CHECKSUM
+ARG XPRA_KEYRING_FINGERPRINT
+ARG XPRA_SOURCES_CHECKSUM
+
+ENV XPRA_UBUNTU_RELEASE="noble"
+
+USER 0
+
+# Set the working directory
+WORKDIR /headless
+
+# Install xpra and desktop environment
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y \
+        ca-certificates \
+        apt-transport-https \
+        software-properties-common \
+        gnupg \
+        curl \
+        wget \
+        jq \
+        cron \
+        gosu \
+        sudo \
+        python3 \
+        python3-requests \
+    && add-apt-repository universe \
+    && curl --fail --silent --show-error --location \
+        -o /usr/share/keyrings/xpra.asc \
+        https://xpra.org/xpra.asc \
+    && echo "${XPRA_KEYRING_CHECKSUM}  /usr/share/keyrings/xpra.asc" | sha256sum -c - \
+    && test "$(gpg --show-keys --with-colons /usr/share/keyrings/xpra.asc | awk -F: '$1=="fpr" {print $10; exit}')" = "${XPRA_KEYRING_FINGERPRINT}" \
+    && curl --fail --silent --show-error --location \
+        -o /etc/apt/sources.list.d/xpra.sources \
+        https://raw.githubusercontent.com/Xpra-org/xpra/44af22e9239985e4b41b4b315b76bd490f733808/packaging/repos/${XPRA_UBUNTU_RELEASE}/xpra.sources \
+    && echo "${XPRA_SOURCES_CHECKSUM}  /etc/apt/sources.list.d/xpra.sources" | sha256sum -c - \
+    && apt-get update \
+    && apt-get install -y \
+        xpra \
+        openjdk-17-jre \
+        zenity \
+        xdg-utils \
+        trash-cli \
+        rclone \
+        desktop-file-utils \
+        nautilus \
+        gedit \
+        gnome-terminal \
+        libasound2t64 \
+        libavcodec-extra \
+        libavformat-extra \
+        vlc \
+        libvlc-dev \
+        libgdk-pixbuf2.0-0 \
+        libgl1 \
+        libgtk-3-0t64 \
+        libgtk2.0-0t64 \
+        libxtst6 \
+        libxkbcommon-x11-0 \
+        pulseaudio \
+        dbus \
+        ubuntu-wallpapers-noble \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy the Python script into the container
+RUN mkdir -p /headless/scripts
+COPY cronitor.py /headless/scripts/
+COPY configure_cron_schedule.sh /headless/scripts/
+COPY install_iptvboss.sh /headless/scripts/
+
+# Install IPTVBoss
+RUN CPU=$(dpkg --print-architecture) \
+    && if [ -n "$LATEST_TAG" ]; then \
+        sh /headless/scripts/install_iptvboss.sh stable "$LATEST_TAG" "$CPU"; \
+    fi \
+    && if [ -n "$BETA_TAG" ]; then \
+        sh /headless/scripts/install_iptvboss.sh beta "$BETA_TAG" "$CPU"; \
+    fi \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Setup Xpra environment and desktop
+RUN set -eux \
+    && rm -rvf /usr/share/xpra/www/default-settings.* \
+    && mkdir -m 1777 -p /tmp/xdg/xpra \
+    && mkdir -m 755 -p /run/xpra /etc/xdg/menus \
+    && chmod 755 /run/user /run/xpra \
+    && echo "<Menu/>" > /etc/xdg/menus/kde-debian-menu.menu \
+    && echo "<Menu/>" > /etc/xdg/menus/debian-menu.menu \
+    && find /usr/share/applications -not -name '*iptvboss*' -not -name '*Terminal*' -not -name '*Nautilus*' -not -name '*gedit*' -type f -delete \
+    && update-desktop-database
+
+# Create the iptvboss user at build time. The default UID is 911 and the
+# entrypoint will adjust it to the PUID/PGID supplied at runtime.
+# Remove the default 'ubuntu' user from the base image so there is no UID 1000
+# conflict when PUID=1000 is used; otherwise Xpra resolves the running UID to
+# 'ubuntu' and uses /home/ubuntu for its sockets/config.
+RUN userdel -f ubuntu 2>/dev/null || true && \
+    rm -rf /home/ubuntu && \
+    useradd -u 911 -U -G audio -d /headless -s /bin/bash iptvboss && \
+    touch /headless/iptvboss-cron && \
+    chown iptvboss:iptvboss /headless/iptvboss-cron && \
+    chmod 600 /headless/iptvboss-cron
+
+# The base image creates /headless/.cache owned by root with mode 0700, but the
+# iptvboss user runs the app and the graphics libraries it pulls in. Mesa fails
+# to create its shader cache under $XDG_CACHE_HOME (/headless/.cache) as a
+# result. The entrypoint only chowns /headless when PUID/PGID are set, so give
+# the cache and config dirs to iptvboss at build time. This also lets Chromium,
+# dconf, ibus and the other user caches populate cleanly.
+RUN mkdir -p /headless/.cache /headless/.config && \
+    chown -R iptvboss:iptvboss /headless/.cache /headless/.config && \
+    chmod 700 /headless/.cache /headless/.config
+
+# Shared cron helper scripts (also used by Dockerfile / Dockerfile.headless)
+RUN chmod +x /headless/scripts/configure_cron_schedule.sh /headless/scripts/cronitor.py
+RUN mkdir -m 700 -p /headless/IPTVBoss && chown -R iptvboss:iptvboss /headless/IPTVBoss
+
+# Point the shared cron script at the same persistent path used by other images
+ENV CRON_FILE="/headless/iptvboss-cron"
+ENV CRON_TARGET_CMD="/usr/lib/iptvboss/bin/iptvboss -nogui >> /var/log/cron.log 2>&1"
+
+COPY xpra-entrypoint.sh /opt/xpra-entrypoint.sh
+RUN chmod +x /opt/xpra-entrypoint.sh
+
+# Expose Xpra port
+ENV XPRA_BIND="0.0.0.0"
+ENV XPRA_PORT="5454"
+EXPOSE $XPRA_PORT
+
+VOLUME ["/headless/IPTVBoss"]
+
+ENTRYPOINT ["/opt/xpra-entrypoint.sh"]

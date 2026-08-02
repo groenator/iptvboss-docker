@@ -3,6 +3,7 @@ set -e
 # Run as root to install cronitor and set permissions
 if [ "$(id -u)" = "0" ]; then
     # Set the uid and gid based on environment variables PUID/PGID
+
     if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
         echo "Setting iptvboss user and group id to ${PUID} and ${PGID}..."
         groupmod -o -g "${PGID}" iptvboss
@@ -12,27 +13,36 @@ if [ "$(id -u)" = "0" ]; then
     else
         echo "PUID or PGID not set. Using default values."
     fi
+
     # Install cronitor
     if [ -n "$CRONITOR_API_KEY" ]; then
         echo "Installing cronitor..."
-        curl -s https://cronitor.io/install-linux?sudo=1 -H "API-KEY: $CRONITOR_API_KEY" | sh > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
+        CRONITOR_INSTALLER="$(mktemp)"
+        if curl --fail --silent --show-error --location \
+            -H "API-KEY: $CRONITOR_API_KEY" \
+            "https://cronitor.io/install-linux?sudo=1" \
+            -o "$CRONITOR_INSTALLER" && \
+            sh "$CRONITOR_INSTALLER" > /dev/null 2>&1; then
             echo "Cronitor installed successfully."
         else
             echo "Error: Cronitor installation failed." >&2
         fi
+        rm -f "$CRONITOR_INSTALLER"
     else
         echo "CRONITOR_API_KEY not set. Skipping cronitor installation."
     fi
+
     # Start cron daemon as root
     echo "Starting the cron daemon"
     cron
     echo "The cron daemon started successfully."
+
     # Give execution rights on the cron job
     crontab -u iptvboss /headless/iptvboss-cron &&  \
     chmod u+s /usr/sbin/cron && \
     touch /var/log/cron.log && \
     chown iptvboss:iptvboss /var/log/cron.log
+
 # Set Mozilla Firefox as the default browser for XFCE/XDG when no user preference exists.
 # This helps external authorization links, such as Dropbox auth links, open correctly.
 FIREFOX_CMD="$(command -v firefox || command -v firefox-esr || true)"
@@ -96,20 +106,31 @@ fi
         cp /headless/IPTVBoss/gvfs-metadata-home /headless/.local/share/gvfs-metadata/home
         chmod 600 /headless/.local/share/gvfs-metadata/home
     fi
-    chown -R ${PUID}:${PGID} /headless/.config
-    chown -R ${PUID}:${PGID} /headless/.local
+    if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
+        chown -R "${PUID}:${PGID}" /headless/.config
+        chown -R "${PUID}:${PGID}" /headless/.local
+    fi
+
+    # Keep that trust checksum backed up to persistent storage so that once a
+    # desktop launcher is manually marked "Mark As Secure And Launch", the
+    # decision survives container restarts/redeploys instead of reverting.
+    # See: https://github.com/groenator/iptvboss-docker/pull/207
+    (
+        while true; do
+            if [ -f /headless/.local/share/gvfs-metadata/home ]; then
+                cp /headless/.local/share/gvfs-metadata/home /headless/IPTVBoss/gvfs-metadata-home 2>/dev/null
+            fi
+            sleep 5
+        done
+    ) &
+
     # Change to iptvboss user for user-level commands
     exec gosu iptvboss "$BASH_SOURCE" "$@"
 fi
+
 # The following will run as iptvboss user due to gosu command above
 /headless/scripts/configure_cron_schedule.sh
-# Configure cronitor if API key is provided
-if [ -n "$CRONITOR_API_KEY" ]; then
-    configure_cronitor() {
-        python3 /headless/scripts/cronitor.py --name "$CRONITOR_SCHEDULE_NAME"
-    }
-    configure_cronitor
-fi
+
 # # Start XCServer on Boot
 if [ "$XC_SERVER" = "true" ]; then
     echo "Starting XCServer..."
@@ -118,6 +139,7 @@ if [ "$XC_SERVER" = "true" ]; then
 else
     echo "XC_SERVER is not set to true. XCServer will not be started."
 fi
+
 #Start vnc service
 sleep 5
 echo "Staring The VNC service"

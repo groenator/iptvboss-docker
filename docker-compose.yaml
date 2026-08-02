@@ -1,19 +1,19 @@
-version: "2.1"
 services:
   iptvboss:
-    image: ghcr.io/groenator/iptvboss-docker:latest
-    devices:
-      - /dev/snd:/dev/snd # Required for audio support
+    image: ghcr.io/groenator/iptvboss-docker:<version> # The Image has support for both ARM and x86 devices.
     environment:
-      CRON_SCHEDULE: "0 0 * * *" # Set the cron schedule for the cron job that will update the EPG data.
-      CRONITOR_API_KEY: "<your_cronitor_api_key>" # Optional - See instructions below, if you don't have a key, the cronitor env can be removed.
-      CRONITOR_SCHEDULE_NAME: "My Custom Schedule" # Set a name for your Cronitor.io Job
-    privileged: true
+      PUID: "1000" # Set the user ID for the container.
+      PGID: "1000" # Set the group ID for the container.
+      TZ: "US/Eastern" # Set the timezone for the container.
+      CRON_SCHEDULE: "0 0 * * *" # Optional: set only when using container-managed cron scheduling.
+      CRONITOR_API_KEY: "<your_cronitor_api_key>" # Optional: required only for Cronitor monitoring.
+      CRONITOR_SCHEDULE_NAME: "My IPTVBoss Job" # Optional: custom Cronitor monitor name.
+      XC_SERVER: "true" # Set to true to start the XC server on boot. By default the XCSERVER is set to false.
     ports:
-      - 8001:8001
-      - 5901:5901
-      - 6901:6901
-    group_add:
-      - audio # Required for audio support
+      - 8001:8001 # Used by XC Server
+      - 5901:5901 # Used by the VNC Server to connect to the container using the VNC client.
+      - 6901:6901 # Used by the VNC Server to connect to the container using a web browser.
     volumes:
-      - <local_volume>:/headless/IPTVBoss # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss
+    # Replace <local_volume> with the local directory where you want to store the IPTVBoss data. E.g., /home/user/iptvboss.
+    # Based on the PUID and PGID environment variables the folder permissions are set at runtime.
+    - <local_volume>:/headless/IPTVBoss

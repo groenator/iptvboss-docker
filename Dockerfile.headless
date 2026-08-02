@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # Set locale to avoid warnings
 ENV LC_ALL=C.UTF-8
@@ -19,28 +19,25 @@ RUN apt-get update -y && apt-get upgrade -y
 # Install dependencies needed to install iptvboss
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev libsndfile1-dev \
-    python3 python3-pip python3-requests gosu \
-    libgtk2.0-0 libgtk-3-0 libgl1 libasound2 libxtst6  \
-    libavformat* libavcodec-extra* libgdk-pixbuf2.0-0 && \
+    python3 python3-pip python3-requests gosu rclone \
+    libgtk2.0-0t64 libgtk-3-0t64 libgl1 libasound2t64 libxtst6  \
+    libavformat-extra libavcodec-extra* libgdk-pixbuf2.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
 COPY cronitor.py /headless/scripts/
 COPY configure_cron_schedule.sh /headless/scripts/
+COPY install_iptvboss.sh /headless/scripts/
 
 # Retrieve the latest release tag from GitHub
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     # Build the latest release
     if [ -n "$LATEST_TAG" ]; then \
-        wget https://github.com/walrusone/iptvboss-release/releases/download/${LATEST_TAG}/iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-        apt install -y ./iptvboss_${LATEST_TAG#v}_${CPU}.deb && \
-        rm -f iptvboss_${LATEST_TAG#v}_${CPU}.deb; \
+        sh /headless/scripts/install_iptvboss.sh stable "$LATEST_TAG" "$CPU"; \
     fi && \
     # Build the beta version
     if [ -n "$BETA_TAG" ]; then \
-        wget https://github.com/walrusone/iptvboss-beta/releases/download/${BETA_TAG#v}/iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-        apt install -y ./iptvboss_${BETA_TAG#v}_${CPU}.deb && \
-        rm -f iptvboss_${BETA_TAG#v}_${CPU}.deb; \
+        sh /headless/scripts/install_iptvboss.sh beta "$BETA_TAG" "$CPU"; \
     fi
 
 # Create a new user with home directory set to /headless
@@ -48,6 +45,13 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
     touch /headless/iptvboss-cron && \
     chown iptvboss:iptvboss /headless/iptvboss-cron && \
     chmod 600 /headless/iptvboss-cron
+
+# Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
+# the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
+# entrypoint only chowns /headless when PUID/PGID are set.
+RUN mkdir -p /headless/.cache && \
+    chown iptvboss:iptvboss /headless/.cache && \
+    chmod 700 /headless/.cache
 
 # Copy the xcserver file
 COPY xcserver.sh /headless/xcserver.sh
