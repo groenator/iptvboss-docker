@@ -1,8 +1,0 @@
-- [Home](Home)
-- [VNC Stable](VNC-Stable)
-- [VNC Beta](VNC-Beta)
-- [Headless Stable](Headless-Stable)
-- [Headless Beta](Headless-Beta)
-- [Xpra Stable](Xpra-Stable)
-- [Xpra Beta](Xpra-Beta)
-- [Cronitor Integration](Cronitor-Integration)
