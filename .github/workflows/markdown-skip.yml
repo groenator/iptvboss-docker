@@ -8,6 +8,8 @@ on:
   pull_request:
     paths-ignore:
       - "**.md"
+      - release
+      - beta-release
 
 jobs:
   markdown:
