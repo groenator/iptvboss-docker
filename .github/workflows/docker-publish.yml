@@ -100,7 +100,7 @@ jobs:
               beta-release)
                 BETA=true
                 ;;
-              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
+              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|install_iptvboss.sh|.github/workflows/docker-publish.yml)
                 STABLE=true
                 BETA=true
                 ;;

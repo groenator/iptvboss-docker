@@ -29,7 +29,7 @@ COPY cronitor.py /headless/scripts/
 COPY configure_cron_schedule.sh /headless/scripts/
 COPY install_iptvboss.sh /headless/scripts/
 
-# Retrieve the latest release tag from GitHub
+# Install the requested IPTVBoss release from its channel repository
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     # Build the latest release
     if [ -n "$LATEST_TAG" ]; then \
@@ -48,7 +48,7 @@ RUN useradd -u 911 -U -d /headless -s /bin/bash iptvboss && \
 
 # Ensure the iptvboss user owns its cache dir so Mesa (and other graphics libs
 # the app pulls in) can create their shader cache under $XDG_CACHE_HOME. The
-# entrypoint only chowns /headless when PUID/PGID are set.
+# entrypoint only chown /headless when PUID/PGID are set.
 RUN mkdir -p /headless/.cache && \
     chown iptvboss:iptvboss /headless/.cache && \
     chmod 700 /headless/.cache

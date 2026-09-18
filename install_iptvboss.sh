@@ -16,10 +16,10 @@ fi
 
 case "$REPO_KIND" in
     stable)
-        REPO="iptvboss-release"
+        CHANNEL="release"
         ;;
     beta)
-        REPO="iptvboss-beta"
+        CHANNEL="beta"
         ;;
     *)
         echo "Unknown repo kind: $REPO_KIND" >&2
@@ -28,18 +28,20 @@ case "$REPO_KIND" in
 esac
 
 VERSION="${TAG#v}"
+REPOSITORY_URL="https://getboss.iptvboss.pro/releases/${CHANNEL}/${VERSION}/debian"
 DEB_FILE="iptvboss_${VERSION}_${CPU}.deb"
-RELEASE_URL="https://github.com/walrusone/${REPO}/releases/download/${TAG}"
 PACKAGES_FILE="/tmp/iptvboss-packages"
 
-wget -q "${RELEASE_URL}/${DEB_FILE}"
-wget -q -O "$PACKAGES_FILE" "${RELEASE_URL}/Packages"
+wget -q "${REPOSITORY_URL}/${DEB_FILE}"
+wget -q -O "$PACKAGES_FILE" "${REPOSITORY_URL}/Packages"
 
 EXPECTED_SHA=$(awk -v deb="$DEB_FILE" '
     /^Filename:[[:space:]]+/ {fn=$2}
     /^SHA256:[[:space:]]+/ {sha=$2}
     /^$/ {
-        if (fn==deb && sha!="") {
+        count=split(fn, path, "/")
+        if (path[count]==deb && sha!="") {
+            found=1
             print sha
             exit
         }
@@ -47,7 +49,8 @@ EXPECTED_SHA=$(awk -v deb="$DEB_FILE" '
         sha=""
     }
     END {
-        if (fn==deb && sha!="") {
+        count=split(fn, path, "/")
+        if (!found && path[count]==deb && sha!="") {
             print sha
         }
     }

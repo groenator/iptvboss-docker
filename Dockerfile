@@ -48,7 +48,7 @@ COPY cronitor.py /headless/scripts/
 COPY configure_cron_schedule.sh /headless/scripts/
 COPY install_iptvboss.sh /headless/scripts/
 
-# Retrieve the latest release tag from GitHub
+# Install the requested IPTVBoss release from its channel repository
 RUN CPU=$(dpkg-architecture -q DEB_HOST_ARCH_CPU) && \
     # Debian trixie renamed libgdk-pixbuf2.0-0 to libgdk-pixbuf-2.0-0.
     # iptvboss still declares a dependency on the old name, so install a
