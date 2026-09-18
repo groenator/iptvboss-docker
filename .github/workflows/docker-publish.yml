@@ -5,6 +5,9 @@ on:
     branches: [master]
     tags: ['*']
   pull_request:
+    paths-ignore:
+      - release
+      - beta-release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -100,7 +103,7 @@ jobs:
               beta-release)
                 BETA=true
                 ;;
-              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|.github/workflows/docker-publish.yml)
+              Dockerfile|Dockerfile.headless|Dockerfile.xpra|cronitor.py|entrypoint.sh|xpra-entrypoint.sh|xcserver.sh|configure_cron_schedule.sh|install_iptvboss.sh|.github/workflows/docker-publish.yml)
                 STABLE=true
                 BETA=true
                 ;;
@@ -223,7 +226,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push'
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -231,7 +234,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate platform image
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -249,7 +252,7 @@ jobs:
 
       - name: Build and push platform image by digest
         id: build
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -266,7 +269,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.id }}-${{ matrix.arch }},ignore-error=true
 
       - name: Export image digest
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push'
         shell: bash
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -279,7 +282,7 @@ jobs:
           touch "/tmp/digests/${DIGEST#sha256:}"
 
       - name: Upload image digest
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v5
         with:
           name: digests-${{ matrix.id }}-${{ matrix.arch }}
@@ -290,7 +293,7 @@ jobs:
   merge_manifests:
     name: Publish ${{ matrix.id }} manifest
     if: |
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.event_name == 'push' &&
       needs.changes.outputs.image_matrix != '[]' &&
       needs.codeql.result == 'success' &&
       needs.build_platforms.result == 'success'
@@ -339,9 +342,8 @@ jobs:
         with:
           images: ${{ matrix.image }}
           tags: |
-            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
-            type=raw,value=${{ steps.version.outputs.version }},enable=${{ github.event_name == 'push' }}
-            type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }}
 
       - name: Create multi-platform manifest
         shell: bash
@@ -371,10 +373,4 @@ jobs:
         env:
           IMAGE: ${{ matrix.image }}
           VERSION: ${{ steps.version.outputs.version }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            docker buildx imagetools inspect "${IMAGE}:pr-${PR_NUMBER}"
-          else
-            docker buildx imagetools inspect "${IMAGE}:${VERSION}"
-          fi
+        run: docker buildx imagetools inspect "${IMAGE}:${VERSION}"

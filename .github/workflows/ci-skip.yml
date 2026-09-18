@@ -10,6 +10,8 @@ on:
     paths-ignore:
       - .gitignore
       - .github/workflows/*.yml
+      - release
+      - beta-release
 jobs:
   verify:
     runs-on: ubuntu-latest

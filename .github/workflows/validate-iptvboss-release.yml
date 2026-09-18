@@ -1,0 +1,94 @@
+name: Validate Boss Release
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: Boss image channel (stable or beta)
+        required: true
+        type: string
+      version:
+        description: Boss version to validate
+        required: true
+        type: string
+    secrets:
+      XPRA_KEY_SHA256:
+        required: false
+      XPRA_KEY_FINGERPRINT:
+        required: false
+      XPRA_SOURCES_SHA256:
+        required: false
+
+jobs:
+  build:
+    name: Build ${{ inputs.channel }} ${{ matrix.id }} (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: vnc
+            dockerfile: Dockerfile
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - id: vnc
+            dockerfile: Dockerfile
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - id: headless
+            dockerfile: Dockerfile.headless
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - id: headless
+            dockerfile: Dockerfile.headless
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - id: xpra
+            dockerfile: Dockerfile.xpra
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - id: xpra
+            dockerfile: Dockerfile.xpra
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Select build argument
+        id: config
+        shell: bash
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          case "$CHANNEL" in
+            stable) echo "build_arg=LATEST_TAG" >> "$GITHUB_OUTPUT" ;;
+            beta) echo "build_arg=BETA_TAG" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown channel: $CHANNEL" >&2; exit 1 ;;
+          esac
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            ${{ steps.config.outputs.build_arg }}=${{ inputs.version }}
+            XPRA_KEYRING_CHECKSUM=${{ secrets.XPRA_KEY_SHA256 }}
+            XPRA_KEYRING_FINGERPRINT=${{ secrets.XPRA_KEY_FINGERPRINT }}
+            XPRA_SOURCES_CHECKSUM=${{ secrets.XPRA_SOURCES_SHA256 }}
+          push: false
+          cache-from: type=gha,scope=release-validation-${{ inputs.channel }}-${{ matrix.id }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=release-validation-${{ inputs.channel }}-${{ matrix.id }}-${{ matrix.arch }},ignore-error=true

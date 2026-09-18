@@ -2,150 +2,196 @@ name: Publish Boss Release
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Runs every hour
-  workflow_dispatch: # Allows manual triggering of the workflow
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  update-beta-release:
-    name: Update Beta Release
+  check-beta-release:
+    name: Check Beta Release
     runs-on: ubuntu-latest
+    outputs:
+      update_required: ${{ steps.release.outputs.update_required }}
+      version: ${{ steps.release.outputs.version }}
     steps:
-      # Step 1: Check the latest release from walrusone/iptvboss-beta
-      - name: Fetch latest release
-        id: fetch_latest
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Find latest beta release
+        id: release
+        shell: bash
+        env:
+          CHANNEL: beta
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_FILE: beta-release
         run: |
-          API_URL="https://api.github.com/repos/walrusone/iptvboss-beta/releases/latest"
-          RELEASE_INFO=$(curl --fail --silent --show-error --location \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "$API_URL")
-          VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
-          if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
-            echo "Error: Could not fetch version from latest release."
+          set -euo pipefail
+
+          INDEX_URL="https://getboss.iptvboss.pro/${CHANNEL}/debian/Packages"
+          PACKAGES=$(curl --fail --silent --show-error --location --retry 3 "$INDEX_URL")
+          mapfile -t VERSIONS < <(
+            awk '$1 == "Version:" {print $2}' <<< "$PACKAGES" | sort -u
+          )
+
+          if (( ${#VERSIONS[@]} != 1 )); then
+            echo "Expected one version in $INDEX_URL, found: ${VERSIONS[*]:-none}"
             exit 1
           fi
 
-          ASSET_VERSION="${VERSION#v}"
-          REQUIRED_ASSETS=(
-            "iptvboss_${ASSET_VERSION}_amd64.deb"
-            "iptvboss_${ASSET_VERSION}_arm64.deb"
-          )
-          MISSING_ASSETS=()
-
-          for asset in "${REQUIRED_ASSETS[@]}"; do
-            if ! echo "$RELEASE_INFO" | jq -e --arg asset "$asset" \
-              '.assets | any(.name == $asset and .state == "uploaded" and .size > 0)' \
-              > /dev/null; then
-              MISSING_ASSETS+=("$asset")
-            fi
+          VERSION="${VERSIONS[0]}"
+          RELEASE_URL="https://getboss.iptvboss.pro/releases/${CHANNEL}/${VERSION}/debian"
+          for ARCH in amd64 arm64; do
+            curl --fail --silent --show-error --location --head --retry 3 \
+              "${RELEASE_URL}/iptvboss_${VERSION}_${ARCH}.deb" > /dev/null
           done
 
-          if (( ${#MISSING_ASSETS[@]} > 0 )); then
-            echo "Release $VERSION is not ready; missing required assets: ${MISSING_ASSETS[*]}"
-            echo "assets_ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          CURRENT_VERSION=$(tr -d '\r\n' < "$VERSION_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == "$CURRENT_VERSION" ]]; then
+            echo "IPTVBoss beta $VERSION is already current."
+            echo "update_required=false" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="update-beta-release-${VERSION}"
+            OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if (( OPEN_PRS > 0 )); then
+              echo "An open PR for IPTVBoss beta $VERSION already exists."
+              echo "update_required=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "IPTVBoss beta update found: $CURRENT_VERSION -> $VERSION"
+              echo "update_required=true" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
-          echo "Latest version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "assets_ready=true" >> "$GITHUB_OUTPUT"
+  validate-beta-release:
+    name: Validate Beta Release
+    needs: check-beta-release
+    if: needs.check-beta-release.outputs.update_required == 'true'
+    uses: ./.github/workflows/validate-iptvboss-release.yml
+    with:
+      channel: beta
+      version: ${{ needs.check-beta-release.outputs.version }}
+    secrets: inherit
 
-      # Step 2: Clone your repository
+  create-beta-pr:
+    name: Create Beta Release PR
+    needs: [check-beta-release, validate-beta-release]
+    if: |
+      needs.check-beta-release.outputs.update_required == 'true' &&
+      needs.validate-beta-release.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
-        if: steps.fetch_latest.outputs.assets_ready == 'true'
         uses: actions/checkout@v5
 
-      # Step 3: Update the beta-release file
-      - name: Update beta-release file
-        if: steps.fetch_latest.outputs.assets_ready == 'true'
-        run: |
-          echo "${{ steps.fetch_latest.outputs.version }}" > beta-release
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add beta-release
-          git commit -m "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})" || echo "No changes to commit."
+      - name: Update beta release file
+        env:
+          VERSION: ${{ needs.check-beta-release.outputs.version }}
+        run: printf '%s\n' "$VERSION" > beta-release
 
-      # Step 4: Create a Pull Request
-      - name: Create Pull Request
-        if: steps.fetch_latest.outputs.assets_ready == 'true'
+      - name: Create pull request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})"
-          branch: update-beta-release-${{ steps.fetch_latest.outputs.version }}
-          title: "feat(beta): publishing beta-release (version ${{ steps.fetch_latest.outputs.version }})"
+          commit-message: "feat(beta): publishing beta-release (version ${{ needs.check-beta-release.outputs.version }})"
+          branch: update-beta-release-${{ needs.check-beta-release.outputs.version }}
+          title: "feat(beta): publishing beta-release (version ${{ needs.check-beta-release.outputs.version }})"
           body: |
-            This PR updates the beta-release file to version `${{ steps.fetch_latest.outputs.version }}`.
+            This PR updates the beta-release file to version `${{ needs.check-beta-release.outputs.version }}`.
 
-  update-stable-release:
-      name: Update Stable Release
-      runs-on: ubuntu-latest
-      steps:
-        # Step 1: Check the latest release from walrusone/iptvboss-release
-        - name: Fetch latest release
-          id: fetch_latest
-          run: |
-            API_URL="https://api.github.com/repos/walrusone/iptvboss-release/releases/latest"
-            RELEASE_INFO=$(curl --fail --silent --show-error --location \
-              --header "Accept: application/vnd.github+json" \
-              --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$API_URL")
-            VERSION=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
-            if [ -z "$VERSION" ] || [ "$VERSION" == "null" ]; then
-              echo "Error: Could not fetch version from latest release."
-              exit 1
+            All VNC, headless, and Xpra images passed native amd64 and arm64 builds before this PR was created. No container images were published during validation.
+
+  check-stable-release:
+    name: Check Stable Release
+    runs-on: ubuntu-latest
+    outputs:
+      update_required: ${{ steps.release.outputs.update_required }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Find latest stable release
+        id: release
+        shell: bash
+        env:
+          CHANNEL: release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_FILE: release
+        run: |
+          set -euo pipefail
+
+          INDEX_URL="https://getboss.iptvboss.pro/${CHANNEL}/debian/Packages"
+          PACKAGES=$(curl --fail --silent --show-error --location --retry 3 "$INDEX_URL")
+          mapfile -t VERSIONS < <(
+            awk '$1 == "Version:" {print $2}' <<< "$PACKAGES" | sort -u
+          )
+
+          if (( ${#VERSIONS[@]} != 1 )); then
+            echo "Expected one version in $INDEX_URL, found: ${VERSIONS[*]:-none}"
+            exit 1
+          fi
+
+          VERSION="${VERSIONS[0]}"
+          RELEASE_URL="https://getboss.iptvboss.pro/releases/${CHANNEL}/${VERSION}/debian"
+          for ARCH in amd64 arm64; do
+            curl --fail --silent --show-error --location --head --retry 3 \
+              "${RELEASE_URL}/iptvboss_${VERSION}_${ARCH}.deb" > /dev/null
+          done
+
+          CURRENT_VERSION=$(tr -d '\r\n' < "$VERSION_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == "$CURRENT_VERSION" ]]; then
+            echo "IPTVBoss stable $VERSION is already current."
+            echo "update_required=false" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="update-stable-release-${VERSION}"
+            OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if (( OPEN_PRS > 0 )); then
+              echo "An open PR for IPTVBoss stable $VERSION already exists."
+              echo "update_required=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "IPTVBoss stable update found: $CURRENT_VERSION -> $VERSION"
+              echo "update_required=true" >> "$GITHUB_OUTPUT"
             fi
+          fi
 
-            ASSET_VERSION="${VERSION#v}"
-            REQUIRED_ASSETS=(
-              "iptvboss_${ASSET_VERSION}_amd64.deb"
-              "iptvboss_${ASSET_VERSION}_arm64.deb"
-            )
-            MISSING_ASSETS=()
+  validate-stable-release:
+    name: Validate Stable Release
+    needs: check-stable-release
+    if: needs.check-stable-release.outputs.update_required == 'true'
+    uses: ./.github/workflows/validate-iptvboss-release.yml
+    with:
+      channel: stable
+      version: ${{ needs.check-stable-release.outputs.version }}
+    secrets: inherit
 
-            for asset in "${REQUIRED_ASSETS[@]}"; do
-              if ! echo "$RELEASE_INFO" | jq -e --arg asset "$asset" \
-                '.assets | any(.name == $asset and .state == "uploaded" and .size > 0)' \
-                > /dev/null; then
-                MISSING_ASSETS+=("$asset")
-              fi
-            done
+  create-stable-pr:
+    name: Create Stable Release PR
+    needs: [check-stable-release, validate-stable-release]
+    if: |
+      needs.check-stable-release.outputs.update_required == 'true' &&
+      needs.validate-stable-release.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-            if (( ${#MISSING_ASSETS[@]} > 0 )); then
-              echo "Release $VERSION is not ready; missing required assets: ${MISSING_ASSETS[*]}"
-              echo "assets_ready=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+      - name: Update stable release file
+        env:
+          VERSION: ${{ needs.check-stable-release.outputs.version }}
+        run: printf '%s\n' "$VERSION" > release
 
-            echo "Latest version: $VERSION"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "assets_ready=true" >> "$GITHUB_OUTPUT"
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "feat(stable): publishing stable-release (version ${{ needs.check-stable-release.outputs.version }})"
+          branch: update-stable-release-${{ needs.check-stable-release.outputs.version }}
+          title: "feat(stable): publishing stable-release (version ${{ needs.check-stable-release.outputs.version }})"
+          body: |
+            This PR updates the release file to version `${{ needs.check-stable-release.outputs.version }}`.
 
-        # Step 2: Clone your repository
-        - name: Checkout repository
-          if: steps.fetch_latest.outputs.assets_ready == 'true'
-          uses: actions/checkout@v5
-
-        # Step 3: Update the stable-release file
-        - name: Update stable-release file
-          if: steps.fetch_latest.outputs.assets_ready == 'true'
-          run: |
-            echo "${{ steps.fetch_latest.outputs.version }}" > release
-            git config user.name "GitHub Actions Bot"
-            git config user.email "actions@github.com"
-            git add release
-            git commit -m "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})" || echo "No changes to commit."
-
-        # Step 4: Create a Pull Request
-        - name: Create Pull Request
-          if: steps.fetch_latest.outputs.assets_ready == 'true'
-          uses: peter-evans/create-pull-request@v5
-          with:
-            token: ${{ secrets.GITHUB_TOKEN }}
-            commit-message: "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})"
-            branch: update-stable-release-${{ steps.fetch_latest.outputs.version }}
-            title: "feat(stable): publishing stable-release (version ${{ steps.fetch_latest.outputs.version }})"
-            body: |
-              This PR updates the stable-release file to version `${{ steps.fetch_latest.outputs.version }}`.
+            All VNC, headless, and Xpra images passed native amd64 and arm64 builds before this PR was created. No container images were published during validation.
