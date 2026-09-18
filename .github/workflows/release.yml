@@ -25,6 +25,7 @@ jobs:
         shell: bash
         env:
           CHANNEL: beta
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_FILE: beta-release
         run: |
           set -euo pipefail
@@ -53,8 +54,15 @@ jobs:
             echo "IPTVBoss beta $VERSION is already current."
             echo "update_required=false" >> "$GITHUB_OUTPUT"
           else
-            echo "IPTVBoss beta update found: $CURRENT_VERSION -> $VERSION"
-            echo "update_required=true" >> "$GITHUB_OUTPUT"
+            BRANCH="update-beta-release-${VERSION}"
+            OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if (( OPEN_PRS > 0 )); then
+              echo "An open PR for IPTVBoss beta $VERSION already exists."
+              echo "update_required=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "IPTVBoss beta update found: $CURRENT_VERSION -> $VERSION"
+              echo "update_required=true" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
   validate-beta-release:
@@ -110,6 +118,7 @@ jobs:
         shell: bash
         env:
           CHANNEL: release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_FILE: release
         run: |
           set -euo pipefail
@@ -138,8 +147,15 @@ jobs:
             echo "IPTVBoss stable $VERSION is already current."
             echo "update_required=false" >> "$GITHUB_OUTPUT"
           else
-            echo "IPTVBoss stable update found: $CURRENT_VERSION -> $VERSION"
-            echo "update_required=true" >> "$GITHUB_OUTPUT"
+            BRANCH="update-stable-release-${VERSION}"
+            OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if (( OPEN_PRS > 0 )); then
+              echo "An open PR for IPTVBoss stable $VERSION already exists."
+              echo "update_required=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "IPTVBoss stable update found: $CURRENT_VERSION -> $VERSION"
+              echo "update_required=true" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
   validate-stable-release:
