@@ -30,6 +30,15 @@ if [ "$(id -u)" = "0" ]; then
             echo "Error: Cronitor installation failed." >&2
         fi
         rm -f "$CRONITOR_INSTALLER"
+
+        # Cronitor creates its config as root with mode 0600. The monitored
+        # cron job runs as iptvboss, so transfer ownership while preserving
+        # owner-only access to the API credentials.
+        if [ -f /etc/cronitor/cronitor.json ]; then
+            chown iptvboss:iptvboss /etc/cronitor /etc/cronitor/cronitor.json
+            chmod 700 /etc/cronitor
+            chmod 600 /etc/cronitor/cronitor.json
+        fi
     else
         echo "CRONITOR_API_KEY not set. Skipping cronitor installation."
     fi
