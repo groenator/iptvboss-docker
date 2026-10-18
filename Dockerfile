@@ -40,7 +40,9 @@ RUN printf '%s\n' \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget cron curl sudo dpkg-dev vlc alsa-utils libsndfile1-dev \
     python3 python3-pip python3-requests jq rclone gosu \
-    libgtk2.0-0 libavcodec-extra* libgdk-pixbuf-2.0-0 && \
+    libgtk2.0-0 libavcodec-extra* libgdk-pixbuf-2.0-0 \
+    fontconfig fonts-noto-color-emoji fonts-symbola && \
+    fc-cache -f && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
