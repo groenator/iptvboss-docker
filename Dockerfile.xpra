@@ -67,10 +67,14 @@ RUN set -eux \
         libgtk-3-0t64 \
         libgtk2.0-0t64 \
         libxtst6 \
+        fontconfig \
+        fonts-noto-color-emoji \
+        fonts-symbola \
         libxkbcommon-x11-0 \
         pulseaudio \
         dbus \
         ubuntu-wallpapers-noble \
+    && fc-cache -f \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python script into the container
