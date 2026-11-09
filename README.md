@@ -8,6 +8,8 @@ This repo builds Docker images for running [IPTVBoss](https://github.com/walruso
 
 IPTVBoss is pre-installed via apt in the `/usr/lib/iptvboss` directory. rclone is included in the VNC, Headless, and Xpra images to sync IPTVBoss data to a cloud storage provider, and Cronitor can optionally monitor the container-managed cron job.
 
+All image variants set `IPTVBOSS_COMMUNITY_DOCKER` to `"true"` by default so Boss displays the community Docker update guidance: update Boss by pulling a newer image and recreating the container, rather than installing a Debian package or replacing files inside the running container. A newer Boss release may be available before the community image is updated.
+
 ## Prerequisites
 
 - Docker installed on your machine. See [Docker documentation](https://docs.docker.com/get-docker/) for installation instructions.
